@@ -3,10 +3,10 @@
 	var outputPanel;
 	var x = 250;
 	var y = 190;
-	var apples = [];
 	var rightDown = false;
 	var leftDown = false;
 	var anaconda = null;
+	var apples = [];
 	var anacondaTail = [];
 
 	//Defined constant(ish) variables
@@ -90,40 +90,70 @@
 		*/
 
 			//Draw each snake segment
-			$.each(anacondaTail, function(key, segment) {
+			$.each(anacondaTail, function(index, segment) {
 					ctx.setTransform(1,0,0,1,0,0); 								//Reset to identity
 					ctx.translate(segment.x,segment.y);							//Move to the centre of the segment
 
-					//Mark the centre of the segment
+
+					seg_size = SEGMENT_SIZE;
+					//Make the tail taper to a point
+					switch(index) {
+						case 4:
+							seg_size -= 1;
+							break;
+
+						case 3:
+							seg_size -= 2;
+							break;
+
+						case 2:
+							seg_size -= 4;
+							break;
+
+						case 1:
+							seg_size -= 6;
+							break;
+
+						case 0:
+							seg_size -= 8;
+							break;
+					}
+
+
+					//Mark the centre of each segment
 //					ctx.strokeStyle = 'white';
 //					ctx.setLineWidth(5);
 //					ctx.strokeRect(0, 0, 1, 1);
+
 
 					ctx.lineWidth = SEGMENT_WIDTH;
 
 					//Draw the leading edge
 					ctx.strokeStyle = 'green';
 					ctx.rotate(segment.direction*(Math.PI/180));
-					ctx.moveTo(0,-SEGMENT_SIZE);
-					ctx.lineTo(0,SEGMENT_SIZE);
+					ctx.moveTo(0,-seg_size);
+					ctx.lineTo(0,seg_size);
+
 
 					//Draw the lines to the previous segment
-					if(key != 0) {
+					if(index != 0) {
+						anacondaTail[index].width = seg_size;
+
 						//Left edge
-						ctx.setTransform(1,0,0,1,0,0); 							//Reset to identity
-						ctx.translate(anacondaTail[key-1].x,anacondaTail[key-1].y);	//Move to the centre of the segment
-						ctx.rotate(anacondaTail[key-1].direction*(Math.PI/180));
-						ctx.lineTo(0,SEGMENT_SIZE);
+						ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
+						ctx.translate(anacondaTail[index-1].x,anacondaTail[index-1].y);	//Move to the centre of the segment
+						ctx.rotate(anacondaTail[index-1].direction*(Math.PI/180));
+						ctx.lineTo(0,anacondaTail[index-1].width);
 
 						//Right edge
 						ctx.setTransform(1,0,0,1,0,0); 							//Reset to identity
 						ctx.translate(segment.x,segment.y);						//Move to the centre of the segment
 						ctx.rotate(segment.direction*(Math.PI/180));
-						ctx.moveTo(0,-SEGMENT_SIZE);
-						ctx.setTransform(1,0,0,1,0,0); 								//Reset to identity
-						ctx.translate(anacondaTail[key-1].x,anacondaTail[key-1].y);	//Move to the centre of the segment
-						ctx.rotate(anacondaTail[key-1].direction*(Math.PI/180));
-						ctx.lineTo(0,-SEGMENT_SIZE);
+						ctx.moveTo(0,-seg_size);
+						ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
+						ctx.translate(anacondaTail[index-1].x,anacondaTail[index-1].y);	//Move to the centre of the segment
+						ctx.rotate(anacondaTail[index-1].direction*(Math.PI/180));
+						ctx.lineTo(0,-seg_size);
 					}
 			});
 			ctx.stroke();
@@ -251,12 +281,12 @@
  ***/
 
 function ob_anaconda() {
-	this.x = WIDTH/2;
-	this.y = HEIGHT/4;
+	this.x = 30;
+	this.y = 30;
 	this.dx = 0;
 	this.dy = 1
-	this.direction = 270;
-	this.length = 20;
+	this.direction = 90;
+	this.length = 15;
 	this.distance = 0;
 }
 
@@ -265,6 +295,7 @@ function ob_anacondaSegment(x, y, dx,dy, direction){
 	this.x = typeof(x) != 'undefined' ? x : null;
 	this.y = typeof(y) != 'undefined' ? y : null;
 	this.direction = typeof(direction) != 'undefined' ? direction : null;
+	this.width = SEGMENT_SIZE;
 }
 
 function ob_apple() {
