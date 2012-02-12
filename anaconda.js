@@ -5,9 +5,11 @@
 	var y = 190;
 	var rightDown = false;
 	var leftDown = false;
+	var boost = false;
 	var anaconda = null;
 	var apples = [];
 	var anacondaTail = [];
+	var pause = false;
 
 	//Defined constant(ish) variables
 	var WIDTH;
@@ -19,9 +21,11 @@
 	var APPLE_TOTAL = 5;
 	var APPLE_CHANCE = 0.005;
 	var ANACONDA_SPEED = 5;
+	var ANACONDA_BOOST_SPEED = 8;
 	var ANACONDA_NEW_SEGMENT = 800;
 	var INTERVAL = 40;
 	var DIRECTION_CHANGE_AMOUNT = 8;
+	var PI_180 = Math.PI/180;
 
 	function anacondaGameInit()
 	{
@@ -46,211 +50,220 @@
 	}
 
 	function draw() {
-		ctx.setTransform(1,0,0,1,0,0); 											//Reset to identity
-		ctx.clearRect(0,0,WIDTH, HEIGHT);										//Clear the canvas
-		updateOutputPanel(); 													//Update the ouput panel
-		var rand = Math.random();
-		
-		//Randomly create an apple APPLE_CHANCE of the time provided the field isn't full of apples
-		if (apples.length < APPLE_TOTAL && rand < APPLE_CHANCE) {
-			addApple();
-		}
 
-		//Draw each apple, collision detect, then move it
-		$.each(apples, function(key, apple) {
-			ctx.lineWidth   = APPLE_WIDTH;
-			ctx.strokeStyle = 'red';
-
-			//Draw
-			ctx.beginPath();
-			ctx.moveTo(apple.x - (APPLE_SIZE/2), apple.y - (APPLE_SIZE/2));
-			ctx.lineTo(apple.x + (APPLE_SIZE/2), apple.y + (APPLE_SIZE/2));
+		if(!pause) {
+			ctx.setTransform(1,0,0,1,0,0); 											//Reset to identity
+			ctx.clearRect(0,0,WIDTH, HEIGHT);										//Clear the canvas
+			updateOutputPanel(); 													//Update the ouput panel
+			var rand = Math.random();
 			
-			ctx.moveTo(apple.x + (APPLE_SIZE/2), apple.y - (APPLE_SIZE/2));
-			ctx.lineTo(apple.x - (APPLE_SIZE/2), apple.y + (APPLE_SIZE/2));
-			ctx.closePath();
-			ctx.stroke();
+			//Randomly create an apple APPLE_CHANCE of the time provided the field isn't full of apples
+			if (apples.length < APPLE_TOTAL && rand < APPLE_CHANCE) {
+				addApple();
+			}
 
-			//Collision detect
-			if (apple.x + apple.dx > WIDTH || apple.x + apple.dx < 0)
-				apple.dx = -apple.dx;
-			if (apple.y + apple.dy > HEIGHT || apple.y + apple.dy < 0)
-				apple.dy = -apple.dy;
+			//Draw each apple, collision detect, then move it
+			$.each(apples, function(key, apple) {
+				ctx.lineWidth   = APPLE_WIDTH;
+				ctx.strokeStyle = 'red';
 
-			//Move
-			apple.x += apple.dx;
-			apple.y += apple.dy;
-		});
+				//Draw
+				ctx.beginPath();
+				ctx.moveTo(apple.x - (APPLE_SIZE/2), apple.y - (APPLE_SIZE/2));
+				ctx.lineTo(apple.x + (APPLE_SIZE/2), apple.y + (APPLE_SIZE/2));
+				
+				ctx.moveTo(apple.x + (APPLE_SIZE/2), apple.y - (APPLE_SIZE/2));
+				ctx.lineTo(apple.x - (APPLE_SIZE/2), apple.y + (APPLE_SIZE/2));
+				ctx.closePath();
+				ctx.stroke();
 
+				//Collision detect
+				if (apple.x + apple.dx > WIDTH || apple.x + apple.dx < 0)
+					apple.dx = -apple.dx;
+				if (apple.y + apple.dy > HEIGHT || apple.y + apple.dy < 0)
+					apple.dy = -apple.dy;
 
-		/*
-		 *
-		 * Draw the anaconda
-		 *
-		*/
-
-			//Draw each snake segment
-			$.each(anacondaTail, function(index, segment) {
-					ctx.setTransform(1,0,0,1,0,0); 								//Reset to identity
-					ctx.translate(segment.x,segment.y);							//Move to the centre of the segment
-
-
-					seg_size = SEGMENT_SIZE;
-					//Make the tail taper to a point
-					switch(index) {
-						case 4:
-							seg_size -= 1;
-							break;
-
-						case 3:
-							seg_size -= 2;
-							break;
-
-						case 2:
-							seg_size -= 4;
-							break;
-
-						case 1:
-							seg_size -= 6;
-							break;
-
-						case 0:
-							seg_size -= 8;
-							break;
-					}
-
-
-					//Mark the centre of each segment
-//					ctx.strokeStyle = 'white';
-//					ctx.setLineWidth(5);
-//					ctx.strokeRect(0, 0, 1, 1);
-
-
-					ctx.lineWidth = SEGMENT_WIDTH;
-
-					//Draw the leading edge
-					ctx.strokeStyle = 'green';
-					ctx.rotate(segment.direction*(Math.PI/180));
-					ctx.moveTo(0,-seg_size);
-					ctx.lineTo(0,seg_size);
-
-
-					//Draw the lines to the previous segment
-					if(index != 0) {
-						anacondaTail[index].width = seg_size;
-
-						//Left edge
-						ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
-						ctx.translate(anacondaTail[index-1].x,anacondaTail[index-1].y);	//Move to the centre of the segment
-						ctx.rotate(anacondaTail[index-1].direction*(Math.PI/180));
-						ctx.lineTo(0,anacondaTail[index-1].width);
-
-						//Right edge
-						ctx.setTransform(1,0,0,1,0,0); 							//Reset to identity
-						ctx.translate(segment.x,segment.y);						//Move to the centre of the segment
-						ctx.rotate(segment.direction*(Math.PI/180));
-						ctx.moveTo(0,-seg_size);
-						ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
-						ctx.translate(anacondaTail[index-1].x,anacondaTail[index-1].y);	//Move to the centre of the segment
-						ctx.rotate(anacondaTail[index-1].direction*(Math.PI/180));
-						ctx.lineTo(0,-seg_size);
-					}
+				//Move
+				apple.x += apple.dx;
+				apple.y += apple.dy;
 			});
-			ctx.stroke();
 
 
-			ctx.setTransform(1,0,0,1,0,0); 	//Reset to identity
+			/*
+			 *
+			 * Draw the anaconda
+			 *
+			*/
 
-			//Detect if left/right are pressed and rotate anaconda as needed
-			if (rightDown) {
-				anaconda.direction -= DIRECTION_CHANGE_AMOUNT;
-			}
-			else if (leftDown) {
-				anaconda.direction += DIRECTION_CHANGE_AMOUNT;
-			}
-			if(anaconda.direction > 360) {
-				anaconda.direction -= 360;
-			}
-			if(anaconda.direction< 0) {
-				anaconda.direction += 360;
-			}
+				//Draw each snake segment
+				$.each(anacondaTail, function(index, segment) {
+						ctx.setTransform(1,0,0,1,0,0); 								//Reset to identity
+						ctx.translate(segment.x,segment.y);							//Move to the centre of the segment
 
-			angleInRadians = anaconda.direction * Math.PI / 180;
-			facingX = Math.cos(angleInRadians);
-			facingY = Math.sin(angleInRadians);
+						seg_size = SEGMENT_SIZE;
+						//Make the tail taper to a point
+						switch(index) {
+							case 4:
+								seg_size -= 1;
+								break;
 
-			anaconda.dx = ANACONDA_SPEED * facingX;
-			anaconda.dy = ANACONDA_SPEED * facingY;
+							case 3:
+								seg_size -= 2;
+								break;
 
-			//Collision detect the anaconda
-			//Collision with wall
-			if(anaconda.x < 0 || anaconda.x > WIDTH || anaconda.y < 0 || anaconda.y > HEIGHT) {
-				//alert('DEATH');
-			}
+							case 2:
+								seg_size -= 4;
+								break;
 
-			//Mark the centre of the anaconda head
-			ctx.strokeStyle = 'white';
-			ctx.setLineWidth(5);
-			ctx.strokeRect(anaconda.x-0.5, anaconda.y-0.5, 1, 1);
-			ctx.lineWidth   = SEGMENT_WIDTH;
-			ctx.strokeStyle = 'green';
-			ctx.translate(anaconda.x,anaconda.y);
+							case 1:
+								seg_size -= 6;
+								break;
 
-			//Move the anaconda
-			anaconda.x += anaconda.dx;
-			anaconda.y += anaconda.dy;
-			anaconda.distance += anaconda.x > anaconda.y ? anaconda.x : anaconda.y;
+							case 0:
+								seg_size -= 8;
+								break;
+						}
 
-			//Add new segements once the anaconda has moved a certain distance
-			if(anaconda.distance >= ANACONDA_NEW_SEGMENT) {
-				anaconda.distance = 0;
-				anacondaTail.push(new ob_anacondaSegment(anaconda.x,anaconda.y,0,0,anaconda.direction));
+						ctx.lineWidth = SEGMENT_WIDTH;
 
-				//Remove the anaconda tail as it grows
-				if (anacondaTail.length > anaconda.length) {
-					anacondaTail.splice(0,1);
+						//Draw the leading edge
+						ctx.strokeStyle = 'green';
+						ctx.rotate(segment.direction*(PI_180));
+						ctx.moveTo(0,-seg_size);
+						ctx.lineTo(0,seg_size);
+
+
+						//Draw the lines to the previous segment
+						if(index != 0) {
+							anacondaTail[index].width = seg_size;
+
+							//Left edge
+							ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
+							ctx.translate(anacondaTail[index-1].x,anacondaTail[index-1].y);	//Move to the centre of the segment
+							ctx.rotate(anacondaTail[index-1].direction*(PI_180));
+							ctx.lineTo(0,anacondaTail[index-1].width);
+
+							//Right edge
+							ctx.setTransform(1,0,0,1,0,0); 							//Reset to identity
+							ctx.translate(segment.x,segment.y);						//Move to the centre of the segment
+							ctx.rotate(segment.direction*(PI_180));
+							ctx.moveTo(0,-seg_size);
+							ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
+							ctx.translate(anacondaTail[index-1].x,anacondaTail[index-1].y);	//Move to the centre of the segment
+							ctx.rotate(anacondaTail[index-1].direction*(PI_180));
+							ctx.lineTo(0,-seg_size);
+						}
+				});
+				ctx.stroke();
+
+
+				ctx.setTransform(1,0,0,1,0,0); 	//Reset to identity
+
+				//Detect if left/right are pressed and rotate anaconda as needed
+				if (rightDown) {
+					anaconda.direction -= DIRECTION_CHANGE_AMOUNT;
 				}
-			}
+				else if (leftDown) {
+					anaconda.direction += DIRECTION_CHANGE_AMOUNT;
+				}
+				if(anaconda.direction > 360) {
+					anaconda.direction -= 360;
+				}
+				if(anaconda.direction< 0) {
+					anaconda.direction += 360;
+				}
 
-			ctx.rotate(anaconda.direction*(Math.PI/180));
+				//Detect boost mode
+				speed = ANACONDA_SPEED;
+				if(boost) {
+					speed = ANACONDA_BOOST_SPEED;
+				}
 
-			//Draw the leading edge
-			ctx.beginPath();
-			ctx.moveTo(0,-SEGMENT_SIZE);
-			ctx.lineTo(0,SEGMENT_SIZE);
-			ctx.stroke();
+				angleInRadians = anaconda.direction * Math.PI / 180;
+				facingX = Math.cos(angleInRadians);
+				facingY = Math.sin(angleInRadians);
+
+				anaconda.dx = speed * facingX;
+				anaconda.dy = speed * facingY;
+
+				//Collision detect the anaconda
+				//Collision with wall
+				if(anaconda.x < 0 || anaconda.x > WIDTH || anaconda.y < 0 || anaconda.y > HEIGHT) {
+					//alert('DEATH');
+				}
+
+				//Mark the centre of the anaconda head
+
+				// ctx.strokeStyle = 'white';
+				// ctx.setLineWidth(5);
+				// ctx.strokeRect(anaconda.x-0.5, anaconda.y-0.5, 1, 1);
+				// ctx.lineWidth  = SEGMENT_WIDTH;
 
 
-			//Draw the line from the head to the first segment
-			if(anacondaTail.length > 0) {
-				//Left edge
-				ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
+				ctx.strokeStyle = 'green';
 				ctx.translate(anaconda.x,anaconda.y);
-				ctx.rotate(anaconda.direction*(Math.PI/180));
-				ctx.moveTo(2,SEGMENT_SIZE);
 
-				ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
-				ctx.translate(anacondaTail[anacondaTail.length - 1].x,anacondaTail[anacondaTail.length - 1].y);	//Move to the centre of the segment
-				ctx.rotate(anacondaTail[anacondaTail.length - 1].direction*(Math.PI/180));
+				//Move the anaconda
+				anaconda.x += anaconda.dx;
+				anaconda.y += anaconda.dy;
+				anaconda.distance += anaconda.x > anaconda.y ? anaconda.x : anaconda.y;
+
+				//Add new segements once the anaconda has moved a certain distance
+				if(anaconda.distance >= ANACONDA_NEW_SEGMENT) {
+					anaconda.distance = 0;
+					anacondaTail.push(new ob_anacondaSegment(anaconda.x,anaconda.y,0,0,anaconda.direction));
+
+					//Remove the anaconda tail as it grows
+					if (anacondaTail.length > anaconda.length) {
+						anacondaTail.splice(0,1);
+					}
+				}
+
+				ctx.rotate(anaconda.direction*(PI_180));
+
+				//Draw the leading edge
+				ctx.strokeStyle = 'green';
+				ctx.beginPath();
+				ctx.moveTo(0,-SEGMENT_SIZE);
 				ctx.lineTo(0,SEGMENT_SIZE);
+				ctx.stroke();
 
 
-				//Right edge
-				ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
-				ctx.translate(anaconda.x,anaconda.y);
-				ctx.rotate(anaconda.direction*(Math.PI/180));
-				ctx.moveTo(2,-SEGMENT_SIZE);
+				//Draw the line from the head to the first segment
+				if(anacondaTail.length > 0) {
+					//Left edge
+					ctx.strokeStyle = 'blue';
+					ctx.setTransform(1,0,0,1,0,0);
+					ctx.translate(anaconda.x,anaconda.y);
+					ctx.rotate(anaconda.direction*(PI_180));
+					ctx.moveTo(2,SEGMENT_SIZE);
+										// ctx.moveTo(2,(SEGMENT_SIZE /2 ) + 5);
 
-				ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
-				ctx.translate(anacondaTail[anacondaTail.length - 1].x,anacondaTail[anacondaTail.length - 1].y);	//Move to the centre of the segment
-				ctx.rotate(anacondaTail[anacondaTail.length - 1].direction*(Math.PI/180));
-				ctx.lineTo(0,-SEGMENT_SIZE);
+					ctx.setTransform(1,0,0,1,0,0);
+					ctx.translate(anacondaTail[anacondaTail.length - 1].x,anacondaTail[anacondaTail.length - 1].y);	//Move to the centre of the segment
+					ctx.rotate(anacondaTail[anacondaTail.length - 1].direction*(PI_180));
+					ctx.lineTo(0,SEGMENT_SIZE);
+
+
+					//Right edge
+					ctx.strokeStyle = 'green';
+					ctx.setTransform(1,0,0,1,0,0);
+					ctx.translate(anaconda.x,anaconda.y);
+					ctx.rotate(anaconda.direction*(PI_180));
+					ctx.moveTo(2,-SEGMENT_SIZE);
+
+					ctx.setTransform(1,0,0,1,0,0);
+					ctx.translate(anacondaTail[anacondaTail.length - 1].x,anacondaTail[anacondaTail.length - 1].y);	//Move to the centre of the segment
+					ctx.rotate(anacondaTail[anacondaTail.length - 1].direction*(PI_180));
+					ctx.lineTo(0,-SEGMENT_SIZE);
+				}
+
+				ctx.stroke();
 			}
-			ctx.stroke();
 	}
 
 	function updateOutputPanel() {
-		outputPanel.html('Anaconda: ' + anaconda.direction + ' - ' + anaconda.x + ':' + anaconda.y + ' - ' + anaconda.dx + ':' + anaconda.dy);
+		outputPanel.html(anaconda.direction + ' &#186; | ' + Math.round(anaconda.x) + ':' + Math.round(anaconda.y) + ' | ' + Math.round(anaconda.dx) + ':' + Math.round(anaconda.dy));
 	}
 
 	function addApple() {
@@ -258,17 +271,35 @@
 	}
 	
 	function onKeyDown(evt) {
-		if (evt.keyCode == 39)
-			rightDown = true;
-		else if (evt.keyCode == 37)
-			leftDown = true;
+		switch(evt.keyCode) {
+			case 39:
+				rightDown = true;
+				break;
+			case 37:
+				leftDown = true;
+				break;
+			case 32:
+			case 38:
+				boost = true;
+				break;
+			case 80:
+				pause = !pause;
+		}
 	}
 	
 	function onKeyUp(evt) {
-		if (evt.keyCode == 39)
-			rightDown = false;
-		else if (evt.keyCode == 37)
-			leftDown = false;
+
+		switch(evt.keyCode) {
+			case 39:
+				rightDown = false;
+				break;
+			case 37:
+				leftDown = false;
+				break;
+			case 32:
+			case 38:
+				boost = false;
+		}
 	}
 
 

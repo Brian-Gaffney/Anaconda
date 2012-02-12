@@ -2,6 +2,9 @@
 <html>
 	<head>
 		<title>Anaconda</title>
+		<link rel="stylesheet" type="text/css" href="anaconda.css" />
+
+
 		<script src="jquery-1.4.2.js"></script>
 		<script src="anaconda.js"></script>
 		<script>
@@ -11,15 +14,26 @@
 		</script>
 	</head>
 
-	<body style="background:black;">
-		<div id="game-area" style="float:left;width:500px">
-			<span id="game-score" style="float:left; color:#447855;">00000</span>
-			<span id="game-title" style="color:white; margin-left:170px;">Anaconda</span>
+	<body>
+
+		<div id="instructions">
+			<ul>
+				<li>&larr;, &rarr; &mdash; Turn</li>
+				<li>Space, &uarr; &mdash; Speed boost</li>
+				<li>P &mdash; Pause</li>
+			</ul>
+		</div>
+
+		<div id="game-area">
+			<span id="game-score">00000</span>
+			<h1 id="game-title">Anaconda</h1>
+			<div id="output-panel"></div>
 			<br />
-			<canvas id="anaconda-canvas" width="500" height="390" style="border:solid 1px white;background:black;"></canvas>
+			<canvas id="anaconda-canvas" width="700" height="500" style="border:solid 1px white;background:black;"></canvas>
 		</div>
 		
-		<div id="output-panel" style="background:grey;float:right; width:45%;">output panel</div>
+
+
 	</body>
 
 </html>
