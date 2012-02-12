@@ -1,4 +1,4 @@
-Anaconda is an attempt at porting the Anaconda minigame within [Timesplitters 2](http://en.wikipedia.org/wiki/TimeSplitters_2 "Timesplitters 2")
+Anaconda is an attempt at porting the Anaconda minigame from [Timesplitters 2](http://en.wikipedia.org/wiki/TimeSplitters_2 "Timesplitters 2") - [(Video)](http://www.youtube.com/watch?v=h22thYhPCNw "Anaconda video")
  to HTML5 canvas
 
 
