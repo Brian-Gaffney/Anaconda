@@ -115,26 +115,28 @@
 
 						seg_size = SEGMENT_SIZE;
 						//Make the tail taper to a point
-						switch(index) {
-							case 4:
-								seg_size -= 1;
-								break;
+						if(index <= 4 ) {
+							switch(index) {
+								case 4:
+									seg_size -= 1;
+									break;
 
-							case 3:
-								seg_size -= 2;
-								break;
+								case 3:
+									seg_size -= 2;
+									break;
 
-							case 2:
-								seg_size -= 4;
-								break;
+								case 2:
+									seg_size -= 4;
+									break;
 
-							case 1:
-								seg_size -= 6;
-								break;
+								case 1:
+									seg_size -= 6;
+									break;
 
-							case 0:
-								seg_size -= 8;
-								break;
+								case 0:
+									seg_size -= 8;
+									break;
+							}
 						}
 
 						ctx.lineWidth = SEGMENT_WIDTH;
