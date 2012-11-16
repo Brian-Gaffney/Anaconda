@@ -10,6 +10,7 @@
 	var apples = [];
 	var anacondaTail = [];
 	var pause = false;
+	var death = false;
 
 	//Defined constant(ish) variables
 	var WIDTH;
@@ -23,7 +24,7 @@
 	var ANACONDA_SPEED = 5;
 	var ANACONDA_BOOST_SPEED = 8;
 	var ANACONDA_NEW_SEGMENT = 800;
-	var INTERVAL = 40;
+	var INTERVAL = 25;
 	var DIRECTION_CHANGE_AMOUNT = 8;
 	var PI_180 = Math.PI/180;
 
@@ -35,13 +36,13 @@
 		HEIGHT = canvas.height();
 		$(document).keydown(onKeyDown);
 		$(document).keyup(onKeyUp);
-		ctx = canvas[0].getContext("2d"); 										//Grab the 2D context
-		createAnaconda(); 														//Create the anaconda
-		
+		ctx = canvas[0].getContext("2d");										//Grab the 2D context
+		createAnaconda();														//Create the anaconda
+
 		draw();
-		
+
 		addApple();
-		
+
 		return setInterval(draw, INTERVAL);
 	}
 
@@ -51,12 +52,12 @@
 
 	function draw() {
 
-		if(!pause) {
-			ctx.setTransform(1,0,0,1,0,0); 											//Reset to identity
+		if(!pause && !death) {
+			ctx.setTransform(1,0,0,1,0,0);											//Reset to identity
 			ctx.clearRect(0,0,WIDTH, HEIGHT);										//Clear the canvas
-			updateOutputPanel(); 													//Update the ouput panel
+			updateOutputPanel();													//Update the ouput panel
 			var rand = Math.random();
-			
+
 			//Randomly create an apple APPLE_CHANCE of the time provided the field isn't full of apples
 			if (apples.length < APPLE_TOTAL && rand < APPLE_CHANCE) {
 				addApple();
@@ -71,7 +72,7 @@
 				ctx.beginPath();
 				ctx.moveTo(apple.x - (APPLE_SIZE/2), apple.y - (APPLE_SIZE/2));
 				ctx.lineTo(apple.x + (APPLE_SIZE/2), apple.y + (APPLE_SIZE/2));
-				
+
 				ctx.moveTo(apple.x + (APPLE_SIZE/2), apple.y - (APPLE_SIZE/2));
 				ctx.lineTo(apple.x - (APPLE_SIZE/2), apple.y + (APPLE_SIZE/2));
 				ctx.closePath();
@@ -97,7 +98,7 @@
 
 				//Draw each snake segment
 				$.each(anacondaTail, function(index, segment) {
-						ctx.setTransform(1,0,0,1,0,0); 								//Reset to identity
+						ctx.setTransform(1,0,0,1,0,0);								//Reset to identity
 						ctx.translate(segment.x,segment.y);							//Move to the centre of the segment
 
 						seg_size = SEGMENT_SIZE;
@@ -134,21 +135,21 @@
 
 
 						//Draw the lines to the previous segment
-						if(index != 0) {
+						if(index !== 0) {
 							anacondaTail[index].width = seg_size;
 
 							//Left edge
-							ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
+							ctx.setTransform(1,0,0,1,0,0);									//Reset to identity
 							ctx.translate(anacondaTail[index-1].x,anacondaTail[index-1].y);	//Move to the centre of the segment
 							ctx.rotate(anacondaTail[index-1].direction*(PI_180));
 							ctx.lineTo(0,anacondaTail[index-1].width);
 
 							//Right edge
-							ctx.setTransform(1,0,0,1,0,0); 							//Reset to identity
+							ctx.setTransform(1,0,0,1,0,0);							//Reset to identity
 							ctx.translate(segment.x,segment.y);						//Move to the centre of the segment
 							ctx.rotate(segment.direction*(PI_180));
 							ctx.moveTo(0,-seg_size);
-							ctx.setTransform(1,0,0,1,0,0); 									//Reset to identity
+							ctx.setTransform(1,0,0,1,0,0);									//Reset to identity
 							ctx.translate(anacondaTail[index-1].x,anacondaTail[index-1].y);	//Move to the centre of the segment
 							ctx.rotate(anacondaTail[index-1].direction*(PI_180));
 							ctx.lineTo(0,-seg_size);
@@ -156,8 +157,7 @@
 				});
 				ctx.stroke();
 
-
-				ctx.setTransform(1,0,0,1,0,0); 	//Reset to identity
+				ctx.setTransform(1,0,0,1,0,0);	//Reset to identity
 
 				//Detect if left/right are pressed and rotate anaconda as needed
 				if (rightDown) {
@@ -186,18 +186,21 @@
 				anaconda.dx = speed * facingX;
 				anaconda.dy = speed * facingY;
 
+
+				//Mark the centre of the anaconda head
+				if(anacondaTail.length > 0) {
+					ctx.strokeStyle = 'white';
+					ctx.setLineWidth(5);
+					ctx.strokeRect(anaconda.x, anaconda.y, 1, 1);
+					ctx.lineWidth  = SEGMENT_WIDTH;
+				}
+
+
 				//Collision detect the anaconda
 				//Collision with wall
 				if(anaconda.x < 0 || anaconda.x > WIDTH || anaconda.y < 0 || anaconda.y > HEIGHT) {
-					//alert('DEATH');
+					death = true;
 				}
-
-				//Mark the centre of the anaconda head
-
-				// ctx.strokeStyle = 'white';
-				// ctx.setLineWidth(5);
-				// ctx.strokeRect(anaconda.x-0.5, anaconda.y-0.5, 1, 1);
-				// ctx.lineWidth  = SEGMENT_WIDTH;
 
 
 				ctx.strokeStyle = 'green';
@@ -223,39 +226,69 @@
 
 				//Draw the leading edge
 				ctx.strokeStyle = 'green';
-				ctx.beginPath();
-				ctx.moveTo(0,-SEGMENT_SIZE);
-				ctx.lineTo(0,SEGMENT_SIZE);
-				ctx.stroke();
-
+				// ctx.beginPath();
+				// ctx.moveTo(0,-SEGMENT_SIZE);
+				// ctx.lineTo(0,SEGMENT_SIZE);
+				// ctx.stroke();
 
 				//Draw the line from the head to the first segment
 				if(anacondaTail.length > 0) {
-					//Left edge
-					ctx.strokeStyle = 'blue';
+					//Left edge 1
+					ctx.setTransform(1,0,0,1,0,0);
+					ctx.translate(anacondaTail[anacondaTail.length - 1].x,anacondaTail[anacondaTail.length - 1].y);	//Move to the centre of the segment
+					ctx.rotate(anacondaTail[anacondaTail.length - 1].direction*(PI_180));
+					ctx.moveTo(0,SEGMENT_SIZE);
+
 					ctx.setTransform(1,0,0,1,0,0);
 					ctx.translate(anaconda.x,anaconda.y);
-					ctx.rotate(anaconda.direction*(PI_180));
-					ctx.moveTo(2,SEGMENT_SIZE);
-										// ctx.moveTo(2,(SEGMENT_SIZE /2 ) + 5);
+					ctx.rotate((anaconda.direction + 2) * (PI_180));
+					ctx.lineTo(8,SEGMENT_SIZE + 6);
+
+					//Left edge 2
+					ctx.setTransform(1,0,0,1,0,0);
+					ctx.translate(anaconda.x,anaconda.y);
+					ctx.rotate((anaconda.direction + 2) * (PI_180));
+					ctx.lineTo(20,SEGMENT_SIZE - 3);
+
+					//Right edge 1
 
 					ctx.setTransform(1,0,0,1,0,0);
 					ctx.translate(anacondaTail[anacondaTail.length - 1].x,anacondaTail[anacondaTail.length - 1].y);	//Move to the centre of the segment
 					ctx.rotate(anacondaTail[anacondaTail.length - 1].direction*(PI_180));
-					ctx.lineTo(0,SEGMENT_SIZE);
+					ctx.moveTo(0,-SEGMENT_SIZE);
 
-
-					//Right edge
-					ctx.strokeStyle = 'green';
 					ctx.setTransform(1,0,0,1,0,0);
 					ctx.translate(anaconda.x,anaconda.y);
-					ctx.rotate(anaconda.direction*(PI_180));
-					ctx.moveTo(2,-SEGMENT_SIZE);
+					ctx.rotate((anaconda.direction - 2)*(PI_180));
+					ctx.lineTo(8,-SEGMENT_SIZE - 6);
+
+					//Right edge 2
+					ctx.setTransform(1,0,0,1,0,0);
+					ctx.translate(anaconda.x,anaconda.y);
+					ctx.rotate((anaconda.direction - 2)*(PI_180));
+					ctx.lineTo(20,SEGMENT_SIZE - 15);
+
+					//Join left 1 and right 1
+					ctx.setTransform(1,0,0,1,0,0);
+					ctx.translate(anaconda.x,anaconda.y);
+					ctx.rotate((anaconda.direction + 2) * (PI_180));
+					ctx.moveTo(8,SEGMENT_SIZE + 6);
 
 					ctx.setTransform(1,0,0,1,0,0);
-					ctx.translate(anacondaTail[anacondaTail.length - 1].x,anacondaTail[anacondaTail.length - 1].y);	//Move to the centre of the segment
-					ctx.rotate(anacondaTail[anacondaTail.length - 1].direction*(PI_180));
-					ctx.lineTo(0,-SEGMENT_SIZE);
+					ctx.translate(anaconda.x,anaconda.y);
+					ctx.rotate((anaconda.direction + 2) * (PI_180));
+					ctx.lineTo(8,-SEGMENT_SIZE - 6);
+
+					//Join left 2 and right 2
+					ctx.setTransform(1,0,0,1,0,0);
+					ctx.translate(anaconda.x,anaconda.y);
+					ctx.rotate((anaconda.direction + 2) * (PI_180));
+					ctx.moveTo(20,SEGMENT_SIZE - 17);
+
+					ctx.setTransform(1,0,0,1,0,0);
+					ctx.translate(anaconda.x,anaconda.y);
+					ctx.rotate((anaconda.direction + 2) * (PI_180));
+					ctx.lineTo(20,SEGMENT_SIZE - 3);
 				}
 
 				ctx.stroke();
@@ -269,7 +302,7 @@
 	function addApple() {
 		apples.push(new ob_apple());
 	}
-	
+
 	function onKeyDown(evt) {
 		switch(evt.keyCode) {
 			case 39:
@@ -286,7 +319,7 @@
 				pause = !pause;
 		}
 	}
-	
+
 	function onKeyUp(evt) {
 
 		switch(evt.keyCode) {
@@ -312,11 +345,11 @@
  ***/
 
 function ob_anaconda() {
-	this.x = 30;
-	this.y = 30;
+	this.x = 150;
+	this.y = 80;
 	this.dx = 0;
-	this.dy = 1
-	this.direction = 90;
+	this.dy = 1;
+	this.direction = 0;
 	this.length = 15;
 	this.distance = 0;
 }
@@ -336,9 +369,3 @@ function ob_apple() {
 	this.dx = randomnumber=Math.floor(Math.random()*11) -5;
 	this.dy = randomnumber=Math.floor(Math.random()*11) -5;
 }
-
-
-
-
-
-
