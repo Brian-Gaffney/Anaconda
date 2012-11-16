@@ -78,14 +78,14 @@
 				ctx.closePath();
 				ctx.stroke();
 
-				//Collision detect
+				//Collision detect walls
 				if (apple.x + apple.dx > WIDTH || apple.x + apple.dx < 0)
 					apple.dx = -apple.dx;
 				if (apple.y + apple.dy > HEIGHT || apple.y + apple.dy < 0)
 					apple.dy = -apple.dy;
 
 
-				//Collision with apple
+				//Collision with anaconda mouth
 				ax = apple.x;
 				ay = apple.y;
 				fuzz = 5;
