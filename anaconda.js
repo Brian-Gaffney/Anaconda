@@ -59,12 +59,12 @@
 			var rand = Math.random();
 
 			//Randomly create an apple APPLE_CHANCE of the time provided the field isn't full of apples
-			if (apples.length < APPLE_TOTAL && rand < APPLE_CHANCE) {
-				addApple();
-			}
+			// if (apples.length < APPLE_TOTAL && rand < APPLE_CHANCE) {
+			// 	addApple();
+			// }
 
 			//Draw each apple, collision detect, then move it
-			$.each(apples, function(key, apple) {
+			$.each(apples, function(index, apple) {
 				ctx.lineWidth   = APPLE_WIDTH;
 				ctx.strokeStyle = 'red';
 
@@ -83,6 +83,18 @@
 					apple.dx = -apple.dx;
 				if (apple.y + apple.dy > HEIGHT || apple.y + apple.dy < 0)
 					apple.dy = -apple.dy;
+
+
+				//Collision with apple
+				ax = apple.x;
+				ay = apple.y;
+				fuzz = 5;
+				if(anaconda.x < (ax + fuzz) && anaconda.x > (ax - fuzz) ) {
+					if (anaconda.y < (ay + fuzz) && anaconda.y > (ay - fuzz) ) {
+						console.log('Got an apple');
+						apples.splice(index, 1);
+					}
+				}
 
 				//Move
 				apple.x += apple.dx;
@@ -201,7 +213,6 @@
 				if(anaconda.x < 0 || anaconda.x > WIDTH || anaconda.y < 0 || anaconda.y > HEIGHT) {
 					death = true;
 				}
-
 
 				ctx.strokeStyle = 'green';
 				ctx.translate(anaconda.x,anaconda.y);
