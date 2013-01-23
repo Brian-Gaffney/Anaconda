@@ -5,3 +5,4 @@ Anaconda is an attempt at porting the Anaconda minigame from [Timesplitters 2](h
 #Ideas:
 	Multiplayer with web sockets
 	Split into 2 snakes and independently control both (snake 1 = left right arrow, snake 2 = up down arrow?).
+	Support TV with left/right split. Display each layer with a slight offset for 3D fun
