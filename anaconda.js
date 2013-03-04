@@ -387,7 +387,4 @@ function ob_apple() {
 	this.y = randomnumber=Math.floor(Math.random()*HEIGHT);
 	this.dx = randomnumber=Math.floor(Math.random()*5) -5;
 	this.dy = randomnumber=Math.floor(Math.random()*5) -5;
-
-	this.dx = 0;
-	this.dy = 0;
 }
