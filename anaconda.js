@@ -88,13 +88,18 @@ function draw() {
 					apple.dy = -apple.dy;
 
 
-				//Collision with anaconda mouth
+				//Collision with anaconda mouth - Chomp
 				ax = apple.x;
 				ay = apple.y;
 				fuzz = 15;
 				if(anaconda.x < (ax + fuzz) && anaconda.x > (ax - fuzz) ) {
 					if (anaconda.y < (ay + fuzz) && anaconda.y > (ay - fuzz) ) {
+
+						//Remove the apple
 						apples.splice(index, 1);
+
+						//Add another segment to the anaconda
+						anacondaTail.push(new ob_anacondaSegment(anaconda.x,anaconda.y,0,0,anaconda.direction));
 					}
 				}
 
