@@ -184,10 +184,10 @@ function draw() {
 
 		//Detect if left/right are pressed and rotate anaconda as needed
 		if (rightDown) {
-			anaconda.direction -= DIRECTION_CHANGE_AMOUNT;
+			anaconda.direction += DIRECTION_CHANGE_AMOUNT;
 		}
 		else if (leftDown) {
-			anaconda.direction += DIRECTION_CHANGE_AMOUNT;
+			anaconda.direction -= DIRECTION_CHANGE_AMOUNT;
 		}
 		if(anaconda.direction > 360) {
 			anaconda.direction -= 360;
