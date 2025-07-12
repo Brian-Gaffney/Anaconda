@@ -3,6 +3,7 @@ import { GameState, GameStateType } from './GameState.js';
 import { Renderer } from '../rendering/Renderer.js';
 import { InputManager } from '../input/InputManager.js';
 import { Snake } from '../entities/Snake.js';
+import { Food } from '../entities/Food.js';
 import { Vector2 } from '../entities/Vector2.js';
 import { COLORS, GAME_CONFIG } from './constants.js';
 
@@ -12,6 +13,7 @@ export class Game {
   private renderer: Renderer;
   private inputManager: InputManager;
   private snake: Snake;
+  private food: Food | null = null;
   private scoreElement: HTMLElement;
   private pauseMenuElement: HTMLElement;
 
@@ -24,6 +26,9 @@ export class Game {
     const centerX = GAME_CONFIG.CANVAS_WIDTH / 2;
     const centerY = GAME_CONFIG.CANVAS_HEIGHT / 2;
     this.snake = new Snake(new Vector2(centerX, centerY));
+    
+    // Generate initial food
+    this.generateFood();
 
     this.scoreElement = document.getElementById('score')!;
     this.pauseMenuElement = document.getElementById('pauseMenu')!;
@@ -82,6 +87,19 @@ export class Game {
 
     // Update snake
     this.snake.update(deltaTime);
+    
+    // Update food
+    if (this.food) {
+      this.food.update(deltaTime);
+    }
+
+    // Check food collision
+    if (this.food && this.food.checkCollisionWithSnake(this.snake.getSegments().map(s => s.position))) {
+      // Snake ate food
+      this.gameState.addScore(this.food.getPoints());
+      this.snake.addGrowth(1);
+      this.generateFood();
+    }
 
     // Check collisions
     if (this.snake.checkBoundaryCollision() || this.snake.checkSelfCollision()) {
@@ -104,10 +122,10 @@ export class Game {
     // Render snake
     this.snake.render(this.renderer);
 
-    // Demo food - will be replaced with actual food entity
-    this.renderer.enableGlow(COLORS.RED_FOOD);
-    this.renderer.drawCircle(300, 200, 8, COLORS.RED_FOOD);
-    this.renderer.disableGlow();
+    // Render food
+    if (this.food) {
+      this.food.render(this.renderer);
+    }
 
     if (this.gameState.isPaused()) {
       this.renderer.drawText('PAUSED', 350, 250, COLORS.CYAN_ACCENT);
@@ -117,6 +135,12 @@ export class Game {
       this.renderer.drawText('GAME OVER', 320, 280, COLORS.RED_FOOD);
       this.renderer.drawText('Press Space to restart', 280, 320, COLORS.NEON_GREEN);
     }
+  }
+
+  private generateFood(): void {
+    const snakePositions = this.snake.getSegments().map(segment => segment.position);
+    const foodPosition = Food.generateRandomPosition(snakePositions);
+    this.food = new Food(foodPosition);
   }
 
   private updateUI(): void {
