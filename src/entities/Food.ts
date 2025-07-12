@@ -80,41 +80,50 @@ export class Food {
 
   render(renderer: Renderer): void {
     // Animated glow effect
-    const glowIntensity = 0.5 + Math.sin(this.glowPhase) * 0.3;
-    const glowSize = GAME_CONFIG.NEON_GLOW_SIZE * glowIntensity;
+    const glowIntensity = 0.8 + Math.sin(this.glowPhase) * 0.4;
+    const pulseScale = 1 + Math.sin(this.glowPhase * 1.5) * 0.1;
     
-    renderer.enableGlow(COLORS.RED_FOOD, glowSize);
+    const currentSize = this.size * pulseScale;
     
-    // Draw main food circle
-    renderer.drawCircle(
+    // Draw main food circle with enhanced glow
+    renderer.drawGlowingCircle(
       this.position.x,
       this.position.y,
-      this.size / 2,
-      COLORS.RED_FOOD
+      currentSize / 2,
+      COLORS.RED_FOOD,
+      glowIntensity
     );
 
-    // Draw cross pattern like in reference image
-    const crossSize = this.size * 0.6;
-    const crossThickness = 2;
+    // Enhanced cross pattern with glow
+    const crossSize = currentSize * 0.7;
+    const crossThickness = 3;
     
-    // Horizontal line
-    renderer.drawRect(
-      this.position.x - crossSize / 2,
-      this.position.y - crossThickness / 2,
-      crossSize,
-      crossThickness,
-      COLORS.DARK_BG
-    );
+    const ctx = renderer.getContext();
+    ctx.save();
     
-    // Vertical line
-    renderer.drawRect(
-      this.position.x - crossThickness / 2,
-      this.position.y - crossSize / 2,
-      crossThickness,
-      crossSize,
-      COLORS.DARK_BG
-    );
-
-    renderer.disableGlow();
+    // Add glow to cross pattern
+    ctx.shadowColor = COLORS.DARK_BG;
+    ctx.shadowBlur = 2;
+    ctx.fillStyle = COLORS.DARK_BG;
+    
+    // Horizontal line with rounded ends
+    const hx = this.position.x - crossSize / 2;
+    const hy = this.position.y - crossThickness / 2;
+    ctx.fillRect(hx, hy, crossSize, crossThickness);
+    
+    // Vertical line with rounded ends
+    const vx = this.position.x - crossThickness / 2;
+    const vy = this.position.y - crossSize / 2;
+    ctx.fillRect(vx, vy, crossThickness, crossSize);
+    
+    // Add small bright center dot
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(this.position.x, this.position.y, 1, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
   }
 }
