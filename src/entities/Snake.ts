@@ -10,7 +10,8 @@ interface SnakeSegment {
 }
 
 export class Snake {
-  private segments: SnakeSegment[] = [];
+  private segments: SnakeSegment[] = []; // Keep for collision detection
+  private trailPoints: Vector2[] = []; // Fixed trail points for rendering
   private headPosition: Vector2;
   private headVelocity: Vector2;
   private currentAngle: number = 0; // Current heading in radians
@@ -22,13 +23,20 @@ export class Snake {
   private isRightPressed = false;
   private isBoosting = false;
   private gameTime = 0; // Track total game time for animations
+  private maxTrailLength = 300; // Maximum length of trail in pixels
+  private trailPointSpacing = 4; // Add trail points every 4 pixels
+  private lastTrailPoint: Vector2 | null = null;
 
   constructor(startPosition: Vector2) {
     this.headPosition = startPosition.clone();
     this.currentAngle = 0; // Start facing right
     this.headVelocity = new Vector2(this.baseSpeed, 0);
     
-    // Initialize segments trailing behind the head
+    // Initialize trail with starting point
+    this.trailPoints = [startPosition.clone()];
+    this.lastTrailPoint = startPosition.clone();
+    
+    // Initialize segments for collision detection (still needed for game logic)
     this.segments = [];
     for (let i = 0; i < GAME_CONFIG.INITIAL_SNAKE_LENGTH; i++) {
       const segmentPos = new Vector2(
@@ -72,13 +80,48 @@ export class Snake {
     // Move head continuously
     this.headPosition = this.headPosition.add(this.headVelocity.multiply(dt));
     
-    // Update segments to follow the head smoothly
+    // Update trail points - add new points as head moves
+    this.updateTrail();
+    
+    // Update segments to follow the head smoothly (for collision detection)
     this.updateSegments(dt);
     
     // Handle growth
     if (this.growthPending > 0) {
       this.grow();
       this.growthPending--;
+    }
+  }
+
+  private updateTrail(): void {
+    // Add new trail point if head has moved far enough
+    if (this.lastTrailPoint) {
+      const distanceMoved = this.headPosition.distance(this.lastTrailPoint);
+      if (distanceMoved >= this.trailPointSpacing) {
+        // Add new point at head position
+        this.trailPoints.unshift(this.headPosition.clone());
+        this.lastTrailPoint = this.headPosition.clone();
+        
+        // Remove old points to maintain max trail length
+        this.trimTrail();
+      }
+    }
+  }
+
+  private trimTrail(): void {
+    // Calculate total trail length
+    let totalLength = 0;
+    for (let i = 1; i < this.trailPoints.length; i++) {
+      totalLength += this.trailPoints[i - 1].distance(this.trailPoints[i]);
+    }
+    
+    // Remove points from the tail until we're under max length
+    while (totalLength > this.maxTrailLength && this.trailPoints.length > 2) {
+      const removedPoint = this.trailPoints.pop();
+      if (removedPoint && this.trailPoints.length > 0) {
+        const lastPoint = this.trailPoints[this.trailPoints.length - 1];
+        totalLength -= lastPoint.distance(removedPoint);
+      }
     }
   }
 
@@ -112,6 +155,10 @@ export class Snake {
   }
 
   private grow(): void {
+    // Increase max trail length to make tube longer
+    this.maxTrailLength += 20; // Grow by 20 pixels
+    
+    // Also add segment for collision detection
     const tail = this.segments.length > 0 
       ? this.segments[this.segments.length - 1] 
       : { position: this.headPosition.subtract(new Vector2(Math.cos(this.currentAngle), Math.sin(this.currentAngle)).multiply(this.segmentSpacing)) };
@@ -167,17 +214,19 @@ export class Snake {
   }
 
   getAllPositions(): Vector2[] {
-    return [this.headPosition, ...this.segments.map(s => s.position)];
+    // Use trail points for collision detection with food
+    return [...this.trailPoints];
   }
 
   checkSelfCollision(): boolean {
     const head = this.headPosition;
     const collisionRadius = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 0.4;
     
-    // Check collision with body segments (skip first few segments to avoid immediate collision)
-    for (let i = 3; i < this.segments.length; i++) {
-      const segment = this.segments[i];
-      if (head.distance(segment.position) < collisionRadius) {
+    // Check collision with trail points (skip first few points to avoid immediate collision)
+    const minPointsToSkip = Math.max(3, Math.floor(20 / this.trailPointSpacing)); // Skip about 20 pixels worth
+    for (let i = minPointsToSkip; i < this.trailPoints.length; i++) {
+      const trailPoint = this.trailPoints[i];
+      if (head.distance(trailPoint) < collisionRadius) {
         return true;
       }
     }
@@ -222,17 +271,9 @@ export class Snake {
   }
 
   private calculateSnakePath(): Vector2[] {
-    const pathPoints: Vector2[] = [];
-    
-    // Start with head position
-    pathPoints.push(this.headPosition.clone());
-    
-    // Add all segment positions
-    for (const segment of this.segments) {
-      pathPoints.push(segment.position.clone());
-    }
-    
-    return pathPoints;
+    // Use the fixed trail points for rendering
+    // Trail points are already in order from head to tail
+    return [...this.trailPoints];
   }
 
   private drawTubeOutline(ctx: CanvasRenderingContext2D, pathPoints: Vector2[]): void {
