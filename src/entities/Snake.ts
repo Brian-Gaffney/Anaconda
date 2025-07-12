@@ -197,339 +197,169 @@ export class Snake {
   }
 
   render(renderer: Renderer): void {
-    // Render segments from tail to head (back to front)
-    for (let i = this.segments.length - 1; i >= 0; i--) {
-      this.renderSegment(renderer, this.segments[i], i);
-    }
-    
-    // Render head last (on top)
-    this.renderHead(renderer);
-  }
-
-  private renderHead(renderer: Renderer): void {
-    const baseSize = GAME_CONFIG.SNAKE_SEGMENT_SIZE;
-    const headSize = baseSize * 1.4; // Bulbous head - 40% larger
-    
     const ctx = renderer.getContext();
-    const currentDirection = new Vector2(Math.cos(this.currentAngle), Math.sin(this.currentAngle));
-    
-    // Draw bulbous head as rounded rectangle
     ctx.save();
     
-    // Enable glow
-    ctx.shadowColor = COLORS.NEON_GREEN;
-    ctx.shadowBlur = 15; // Enhanced glow
-    
-    // Draw rounded head shape
-    ctx.fillStyle = COLORS.NEON_GREEN;
-    ctx.beginPath();
-    ctx.ellipse(
-      this.headPosition.x, 
-      this.headPosition.y, 
-      headSize / 2, 
-      headSize / 2.2, 
-      this.currentAngle, 
-      0, 
-      Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Add border/outline
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = '#44ff44'; // Brighter green border
+    // Set up minimal green line style
+    ctx.strokeStyle = COLORS.NEON_GREEN;
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.ellipse(
-      this.headPosition.x, 
-      this.headPosition.y, 
-      headSize / 2, 
-      headSize / 2.2, 
-      this.currentAngle, 
-      0, 
-      Math.PI * 2
-    );
-    ctx.stroke();
     
-    // Add inner highlight
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = COLORS.CYAN_ACCENT;
-    ctx.fillStyle = COLORS.CYAN_ACCENT;
-    ctx.beginPath();
-    ctx.ellipse(
-      this.headPosition.x, 
-      this.headPosition.y, 
-      headSize / 3, 
-      headSize / 3.5, 
-      this.currentAngle, 
-      0, 
-      Math.PI * 2
-    );
-    ctx.fill();
+    // Get the continuous path of the snake
+    const pathPoints = this.calculateSnakePath();
     
-    // Draw grid pattern on head with animation
-    this.drawGridPatternOnCircle(renderer, this.headPosition, headSize, this.gameTime);
+    if (pathPoints.length < 2) {
+      ctx.restore();
+      return;
+    }
     
-    // Direction-based "eyes" - make them more prominent and snake-like
-    const eyeSize = 4;
-    const directionOffset = currentDirection.multiply(headSize * 0.3);
-    const perpendicular = new Vector2(-currentDirection.y, currentDirection.x).multiply(headSize * 0.25);
+    // Draw the continuous tube outline
+    this.drawTubeOutline(ctx, pathPoints);
     
-    const eye1Pos = this.headPosition.add(directionOffset).add(perpendicular);
-    const eye2Pos = this.headPosition.add(directionOffset).subtract(perpendicular);
-    
-    // Draw eye sockets first (dark background)
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#003300';
-    
-    ctx.beginPath();
-    ctx.arc(eye1Pos.x, eye1Pos.y, eyeSize * 1.3, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.arc(eye2Pos.x, eye2Pos.y, eyeSize * 1.3, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Draw the actual eyes (bright white/cyan)
-    ctx.shadowColor = COLORS.CYAN_ACCENT;
-    ctx.shadowBlur = 6;
-    ctx.fillStyle = COLORS.CYAN_ACCENT;
-    
-    ctx.beginPath();
-    ctx.arc(eye1Pos.x, eye1Pos.y, eyeSize, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.arc(eye2Pos.x, eye2Pos.y, eyeSize, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Add eye pupils for direction
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#ffffff';
-    const pupilSize = eyeSize * 0.4;
-    const pupilOffset = currentDirection.multiply(eyeSize * 0.3);
-    
-    ctx.beginPath();
-    ctx.arc(eye1Pos.x + pupilOffset.x, eye1Pos.y + pupilOffset.y, pupilSize, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.arc(eye2Pos.x + pupilOffset.x, eye2Pos.y + pupilOffset.y, pupilSize, 0, Math.PI * 2);
-    ctx.fill();
+    // Draw perpendicular cross-lines every ~20px
+    this.drawCrossLines(ctx, pathPoints);
     
     ctx.restore();
   }
 
-  private renderSegment(renderer: Renderer, segment: SnakeSegment, index: number): void {
-    const baseSize = GAME_CONFIG.SNAKE_SEGMENT_SIZE;
+  private calculateSnakePath(): Vector2[] {
+    const pathPoints: Vector2[] = [];
     
-    // Calculate tapered size - tail gets progressively smaller
-    const tailProgress = index / (this.segments.length - 1); // 0 at head, 1 at tail
-    const minSize = baseSize * 0.3; // Tail tapers to 30% of base size
-    const segmentSize = baseSize - (baseSize - minSize) * Math.pow(tailProgress, 1.5);
+    // Start with head position
+    pathPoints.push(this.headPosition.clone());
     
-    const ctx = renderer.getContext();
+    // Add all segment positions
+    for (const segment of this.segments) {
+      pathPoints.push(segment.position.clone());
+    }
     
-    // Get connection info for smooth segments
-    const prevPos = index > 0 ? this.segments[index - 1].position : this.headPosition;
-    const nextPos = index < this.segments.length - 1 ? this.segments[index + 1].position : null;
-    
-    ctx.save();
-    
-    // Enhanced glow effects
-    const velocity = segment.velocity.length();
-    const glowIntensity = 0.8 + Math.min(velocity * 0.01, 0.7);
-    ctx.shadowColor = COLORS.NEON_GREEN;
-    ctx.shadowBlur = 12 * glowIntensity; // More pronounced glow
-    
-    // Draw connected segment
-    this.drawConnectedSegment(ctx, segment.position, prevPos, nextPos, segmentSize);
-    
-    // Add segment border/outline
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = '#44ff44'; // Brighter green border
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(segment.position.x, segment.position.y, segmentSize / 2, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Draw grid pattern with animation
-    this.drawGridPattern(renderer, 
-      segment.position.x - segmentSize / 2, 
-      segment.position.y - segmentSize / 2, 
-      segmentSize,
-      this.gameTime
-    );
-    
-    ctx.restore();
+    return pathPoints;
   }
 
-  private drawConnectedSegment(
-    ctx: CanvasRenderingContext2D, 
-    pos: Vector2, 
-    prevPos: Vector2, 
-    _nextPos: Vector2 | null, 
-    size: number
-  ): void {
-    ctx.fillStyle = COLORS.NEON_GREEN;
+  private drawTubeOutline(ctx: CanvasRenderingContext2D, pathPoints: Vector2[]): void {
+    const tubeWidth = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 0.8;
+    const halfWidth = tubeWidth / 2;
     
-    // Draw main segment body
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, size / 2, 0, Math.PI * 2);
-    ctx.fill();
+    if (pathPoints.length < 2) return;
     
-    // Draw connections to previous segment with better blending
-    if (prevPos) {
-      const toPrev = prevPos.subtract(pos);
-      const distance = toPrev.length();
-      if (distance > 0 && distance < size * 2) { // Only connect if close enough
-        const direction = toPrev.normalize();
-        const perpendicular = new Vector2(-direction.y, direction.x);
-        
-        // Draw smoother connection with rounded ends
-        const connectionLength = Math.min(distance * 0.8, size * 1.2);
-        const connectionWidth = size * 0.9; // Wider connection for seamless look
-        
-        // Create rounded rectangle connection
-        ctx.beginPath();
-        
-        // Start point (current segment edge)
-        const startX = pos.x + direction.x * (size / 2 * 0.3);
-        const startY = pos.y + direction.y * (size / 2 * 0.3);
-        
-        // End point (toward previous segment)
-        const endX = pos.x + direction.x * connectionLength;
-        const endY = pos.y + direction.y * connectionLength;
-        
-        // Draw connection as a rounded rectangle
-        const halfWidth = connectionWidth / 2;
-        
-        ctx.moveTo(startX + perpendicular.x * halfWidth, startY + perpendicular.y * halfWidth);
-        ctx.lineTo(endX + perpendicular.x * halfWidth, endY + perpendicular.y * halfWidth);
-        ctx.lineTo(endX - perpendicular.x * halfWidth, endY - perpendicular.y * halfWidth);
-        ctx.lineTo(startX - perpendicular.x * halfWidth, startY - perpendicular.y * halfWidth);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Add small connecting circles for even smoother appearance
-        ctx.beginPath();
-        ctx.arc(startX, startY, size / 2 * 0.8, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.beginPath();
-        ctx.arc(endX, endY, size / 2 * 0.6, 0, Math.PI * 2);
-        ctx.fill();
+    // Calculate the outline points for both sides of the tube
+    const leftSide: Vector2[] = [];
+    const rightSide: Vector2[] = [];
+    
+    for (let i = 0; i < pathPoints.length; i++) {
+      const current = pathPoints[i];
+      let direction: Vector2;
+      
+      if (i === 0) {
+        // First point - use direction to next point
+        direction = pathPoints[i + 1].subtract(current).normalize();
+      } else if (i === pathPoints.length - 1) {
+        // Last point - use direction from previous point
+        direction = current.subtract(pathPoints[i - 1]).normalize();
+      } else {
+        // Middle points - average direction
+        const dirToPrev = current.subtract(pathPoints[i - 1]).normalize();
+        const dirToNext = pathPoints[i + 1].subtract(current).normalize();
+        direction = dirToPrev.add(dirToNext).normalize();
       }
+      
+      const perpendicular = new Vector2(-direction.y, direction.x);
+      leftSide.push(current.add(perpendicular.multiply(halfWidth)));
+      rightSide.push(current.subtract(perpendicular.multiply(halfWidth)));
     }
-  }
-
-  private drawGridPattern(renderer: Renderer, x: number, y: number, size: number, gameTime = 0): void {
-    const ctx = renderer.getContext();
-    ctx.save();
     
-    // Subtle animation - grid opacity pulses very slowly
-    const pulseIntensity = 0.3 + 0.2 * Math.sin(gameTime * 0.5);
-    const baseColor = Math.floor(17 * pulseIntensity); // Animate from #001100 to slightly lighter
-    const colorHex = `#00${baseColor.toString(16).padStart(2, '0')}00`;
-    
-    // Make grid lines more prominent and darker
-    ctx.strokeStyle = colorHex;
-    ctx.fillStyle = colorHex;
-    ctx.lineWidth = 1.5;
-    
-    const gridSpacing = Math.max(3, size / 6); // Larger, more visible grid
-    
-    // Draw crosshatch pattern like the reference
+    // Draw left side
     ctx.beginPath();
-    
-    // Vertical lines with subtle offset animation
-    const offsetX = Math.sin(gameTime * 0.3) * 0.5;
-    for (let gx = gridSpacing; gx < size; gx += gridSpacing) {
-      ctx.moveTo(x + gx + offsetX, y);
-      ctx.lineTo(x + gx + offsetX, y + size);
+    ctx.moveTo(leftSide[0].x, leftSide[0].y);
+    for (let i = 1; i < leftSide.length; i++) {
+      ctx.lineTo(leftSide[i].x, leftSide[i].y);
     }
-    
-    // Horizontal lines with subtle offset animation
-    const offsetY = Math.cos(gameTime * 0.3) * 0.5;
-    for (let gy = gridSpacing; gy < size; gy += gridSpacing) {
-      ctx.moveTo(x, y + gy + offsetY);
-      ctx.lineTo(x + size, y + gy + offsetY);
-    }
-    
     ctx.stroke();
     
-    // Add subtle inner shadow effect to grid lines
-    ctx.shadowColor = '#000000';
-    ctx.shadowBlur = 1;
-    ctx.shadowOffsetX = 0.5;
-    ctx.shadowOffsetY = 0.5;
+    // Draw right side
+    ctx.beginPath();
+    ctx.moveTo(rightSide[0].x, rightSide[0].y);
+    for (let i = 1; i < rightSide.length; i++) {
+      ctx.lineTo(rightSide[i].x, rightSide[i].y);
+    }
     ctx.stroke();
-    
-    ctx.restore();
   }
 
-  private drawGridPatternOnCircle(renderer: Renderer, center: Vector2, size: number, gameTime = 0): void {
-    const ctx = renderer.getContext();
-    ctx.save();
+  private drawCrossLines(ctx: CanvasRenderingContext2D, pathPoints: Vector2[]): void {
+    const crossLineSpacing = 20; // Every 20px
+    const tubeWidth = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 0.8;
+    const halfWidth = tubeWidth / 2;
     
-    // Subtle animation - grid opacity pulses very slowly
-    const pulseIntensity = 0.3 + 0.2 * Math.sin(gameTime * 0.4);
-    const baseColor = Math.floor(17 * pulseIntensity);
-    const colorHex = `#00${baseColor.toString(16).padStart(2, '0')}00`;
+    if (pathPoints.length < 2) return;
     
-    // Make head grid more prominent
-    ctx.strokeStyle = colorHex;
-    ctx.lineWidth = 1.5;
+    // Calculate total path length and sample points
+    let totalLength = 0;
+    const segmentLengths: number[] = [];
     
-    const radius = size / 2;
-    const gridSpacing = Math.max(4, size / 8);
-    
-    // Rotating animation offset for radial lines
-    const rotationOffset = gameTime * 0.1;
-    
-    // Draw radial lines (more of them for better crosshatch effect)
-    for (let i = 0; i < 12; i++) {
-      const angle = (i * Math.PI * 2) / 12 + rotationOffset;
-      ctx.beginPath();
-      ctx.moveTo(center.x, center.y);
-      ctx.lineTo(
-        center.x + Math.cos(angle) * radius * 0.85,
-        center.y + Math.sin(angle) * radius * 0.85
-      );
-      ctx.stroke();
+    for (let i = 1; i < pathPoints.length; i++) {
+      const length = pathPoints[i].distance(pathPoints[i - 1]);
+      segmentLengths.push(length);
+      totalLength += length;
     }
     
-    // Draw concentric circles with subtle pulsing
-    const radiusPulse = Math.sin(gameTime * 0.6) * 0.5;
-    for (let r = gridSpacing; r < radius; r += gridSpacing) {
-      ctx.beginPath();
-      ctx.arc(center.x, center.y, r + radiusPulse, 0, Math.PI * 2);
-      ctx.stroke();
+    // Draw cross-lines at regular intervals
+    let nextCrossLine = crossLineSpacing;
+    
+    while (nextCrossLine < totalLength) {
+      const position = this.getPositionAtDistance(pathPoints, segmentLengths, nextCrossLine);
+      const direction = this.getDirectionAtDistance(pathPoints, segmentLengths, nextCrossLine);
+      
+      if (position && direction) {
+        const perpendicular = new Vector2(-direction.y, direction.x);
+        const start = position.add(perpendicular.multiply(halfWidth));
+        const end = position.subtract(perpendicular.multiply(halfWidth));
+        
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+      }
+      
+      nextCrossLine += crossLineSpacing;
     }
-    
-    // Add shadow effect
-    ctx.shadowColor = '#000000';
-    ctx.shadowBlur = 1;
-    ctx.shadowOffsetX = 0.5;
-    ctx.shadowOffsetY = 0.5;
-    
-    // Redraw for shadow effect
-    for (let i = 0; i < 12; i++) {
-      const angle = (i * Math.PI * 2) / 12 + rotationOffset;
-      ctx.beginPath();
-      ctx.moveTo(center.x, center.y);
-      ctx.lineTo(
-        center.x + Math.cos(angle) * radius * 0.85,
-        center.y + Math.sin(angle) * radius * 0.85
-      );
-      ctx.stroke();
-    }
-    
-    for (let r = gridSpacing; r < radius; r += gridSpacing) {
-      ctx.beginPath();
-      ctx.arc(center.x, center.y, r + radiusPulse, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    
-    ctx.restore();
   }
+
+  private getPositionAtDistance(pathPoints: Vector2[], segmentLengths: number[], targetDistance: number): Vector2 | null {
+    let currentDistance = 0;
+    
+    for (let i = 0; i < segmentLengths.length; i++) {
+      const segmentLength = segmentLengths[i];
+      
+      if (currentDistance + segmentLength >= targetDistance) {
+        // Target is within this segment
+        const segmentProgress = (targetDistance - currentDistance) / segmentLength;
+        const start = pathPoints[i];
+        const end = pathPoints[i + 1];
+        return start.add(end.subtract(start).multiply(segmentProgress));
+      }
+      
+      currentDistance += segmentLength;
+    }
+    
+    return null;
+  }
+
+  private getDirectionAtDistance(pathPoints: Vector2[], segmentLengths: number[], targetDistance: number): Vector2 | null {
+    let currentDistance = 0;
+    
+    for (let i = 0; i < segmentLengths.length; i++) {
+      const segmentLength = segmentLengths[i];
+      
+      if (currentDistance + segmentLength >= targetDistance) {
+        // Target is within this segment
+        const start = pathPoints[i];
+        const end = pathPoints[i + 1];
+        return end.subtract(start).normalize();
+      }
+      
+      currentDistance += segmentLength;
+    }
+    
+    return null;
+  }
+
 }
