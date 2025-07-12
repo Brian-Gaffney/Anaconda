@@ -1,0 +1,19 @@
+export const GAME_CONFIG = {
+  CANVAS_WIDTH: 800,
+  CANVAS_HEIGHT: 600,
+  SNAKE_SEGMENT_SIZE: 20,
+  SNAKE_SPEED: 5,
+  FOOD_SIZE: 16,
+  INITIAL_SNAKE_LENGTH: 5,
+  NEON_GLOW_SIZE: 8,
+  TARGET_FPS: 60,
+  FRAME_TIME: 1000 / 60,
+} as const;
+
+export const COLORS = {
+  NEON_GREEN: '#00ff00',
+  DARK_BG: '#000000',
+  BORDER_COLOR: '#ffffff',
+  RED_FOOD: '#ff0000',
+  CYAN_ACCENT: '#00ffff',
+} as const;

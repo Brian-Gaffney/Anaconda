@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Peanut - Snake Game</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+      <div id="ui">
+        <div id="score">Score: 0</div>
+        <div id="pauseMenu" class="hidden">
+          <div class="menu-content">
+            <h2>PAUSED</h2>
+            <button id="continueBtn">Continue</button>
+            <button id="quitBtn">Quit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

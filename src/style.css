@@ -1,0 +1,116 @@
+:root {
+  font-family: 'Courier New', monospace;
+  line-height: 1.5;
+  font-weight: 400;
+  
+  --neon-green: #00ff00;
+  --dark-bg: #000000;
+  --border-color: #ffffff;
+  --red-food: #ff0000;
+  --cyan-accent: #00ffff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--dark-bg);
+  color: var(--neon-green);
+  font-family: 'Courier New', monospace;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#gameCanvas {
+  border: 2px solid var(--border-color);
+  background-color: var(--dark-bg);
+  display: block;
+}
+
+#ui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+#score {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: var(--neon-green);
+  font-size: 18px;
+  font-weight: bold;
+  text-shadow: 0 0 8px var(--neon-green);
+  pointer-events: none;
+}
+
+#pauseMenu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: all;
+}
+
+#pauseMenu.hidden {
+  display: none;
+}
+
+.menu-content {
+  background-color: var(--dark-bg);
+  border: 2px solid var(--border-color);
+  padding: 30px;
+  text-align: center;
+  color: var(--neon-green);
+}
+
+.menu-content h2 {
+  color: var(--cyan-accent);
+  font-size: 24px;
+  margin-bottom: 20px;
+  text-shadow: 0 0 8px var(--cyan-accent);
+}
+
+button {
+  background-color: var(--dark-bg);
+  border: 1px solid var(--neon-green);
+  color: var(--neon-green);
+  padding: 10px 20px;
+  margin: 5px;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background-color: var(--neon-green);
+  color: var(--dark-bg);
+  box-shadow: 0 0 15px var(--neon-green);
+}
+
+button:focus {
+  outline: 2px solid var(--cyan-accent);
+  outline-offset: 2px;
+}
