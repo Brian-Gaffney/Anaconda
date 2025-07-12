@@ -21,6 +21,7 @@ export class Snake {
   private isLeftPressed = false;
   private isRightPressed = false;
   private isBoosting = false;
+  private gameTime = 0; // Track total game time for animations
 
   constructor(startPosition: Vector2) {
     this.headPosition = startPosition.clone();
@@ -44,6 +45,7 @@ export class Snake {
 
   update(deltaTime: number): void {
     const dt = deltaTime * 0.001; // Convert to seconds
+    this.gameTime += dt; // Update game time for animations
     
     // Calculate current speed and turn rate based on boost state
     const currentSpeed = this.isBoosting ? this.baseSpeed * 1.3 : this.baseSpeed;
@@ -112,7 +114,7 @@ export class Snake {
   private grow(): void {
     const tail = this.segments.length > 0 
       ? this.segments[this.segments.length - 1] 
-      : { position: this.headPosition.subtract(this.currentDirection.multiply(this.segmentSpacing)) };
+      : { position: this.headPosition.subtract(new Vector2(Math.cos(this.currentAngle), Math.sin(this.currentAngle)).multiply(this.segmentSpacing)) };
     
     const newSegment: SnakeSegment = {
       position: tail.position.clone(),
@@ -122,18 +124,6 @@ export class Snake {
     this.segments.push(newSegment);
   }
 
-  private getDirectionVector(direction: Direction): Vector2 {
-    switch (direction) {
-      case Direction.UP:
-        return new Vector2(0, -1);
-      case Direction.DOWN:
-        return new Vector2(0, 1);
-      case Direction.LEFT:
-        return new Vector2(-1, 0);
-      case Direction.RIGHT:
-        return new Vector2(1, 0);
-    }
-  }
 
   setDirection(newDirection: Direction): void {
     // Handle input as turning left/right instead of absolute directions
@@ -228,7 +218,7 @@ export class Snake {
     
     // Enable glow
     ctx.shadowColor = COLORS.NEON_GREEN;
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 15; // Enhanced glow
     
     // Draw rounded head shape
     ctx.fillStyle = COLORS.NEON_GREEN;
@@ -244,8 +234,25 @@ export class Snake {
     );
     ctx.fill();
     
+    // Add border/outline
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#44ff44'; // Brighter green border
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(
+      this.headPosition.x, 
+      this.headPosition.y, 
+      headSize / 2, 
+      headSize / 2.2, 
+      this.currentAngle, 
+      0, 
+      Math.PI * 2
+    );
+    ctx.stroke();
+    
     // Add inner highlight
-    ctx.shadowBlur = 6;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = COLORS.CYAN_ACCENT;
     ctx.fillStyle = COLORS.CYAN_ACCENT;
     ctx.beginPath();
     ctx.ellipse(
@@ -259,20 +266,33 @@ export class Snake {
     );
     ctx.fill();
     
-    // Draw grid pattern on head
-    this.drawGridPatternOnCircle(renderer, this.headPosition, headSize);
+    // Draw grid pattern on head with animation
+    this.drawGridPatternOnCircle(renderer, this.headPosition, headSize, this.gameTime);
     
-    // Direction-based "eyes"
-    const eyeSize = 3;
-    const directionOffset = currentDirection.multiply(headSize * 0.25);
-    const perpendicular = new Vector2(-currentDirection.y, currentDirection.x).multiply(headSize * 0.2);
+    // Direction-based "eyes" - make them more prominent and snake-like
+    const eyeSize = 4;
+    const directionOffset = currentDirection.multiply(headSize * 0.3);
+    const perpendicular = new Vector2(-currentDirection.y, currentDirection.x).multiply(headSize * 0.25);
     
     const eye1Pos = this.headPosition.add(directionOffset).add(perpendicular);
     const eye2Pos = this.headPosition.add(directionOffset).subtract(perpendicular);
     
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 4;
-    ctx.fillStyle = '#ffffff';
+    // Draw eye sockets first (dark background)
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#003300';
+    
+    ctx.beginPath();
+    ctx.arc(eye1Pos.x, eye1Pos.y, eyeSize * 1.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(eye2Pos.x, eye2Pos.y, eyeSize * 1.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw the actual eyes (bright white/cyan)
+    ctx.shadowColor = COLORS.CYAN_ACCENT;
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = COLORS.CYAN_ACCENT;
     
     ctx.beginPath();
     ctx.arc(eye1Pos.x, eye1Pos.y, eyeSize, 0, Math.PI * 2);
@@ -280,6 +300,20 @@ export class Snake {
     
     ctx.beginPath();
     ctx.arc(eye2Pos.x, eye2Pos.y, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Add eye pupils for direction
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ffffff';
+    const pupilSize = eyeSize * 0.4;
+    const pupilOffset = currentDirection.multiply(eyeSize * 0.3);
+    
+    ctx.beginPath();
+    ctx.arc(eye1Pos.x + pupilOffset.x, eye1Pos.y + pupilOffset.y, pupilSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(eye2Pos.x + pupilOffset.x, eye2Pos.y + pupilOffset.y, pupilSize, 0, Math.PI * 2);
     ctx.fill();
     
     ctx.restore();
@@ -301,20 +335,29 @@ export class Snake {
     
     ctx.save();
     
-    // Enable glow
+    // Enhanced glow effects
     const velocity = segment.velocity.length();
-    const glowIntensity = 0.7 + Math.min(velocity * 0.01, 0.5);
+    const glowIntensity = 0.8 + Math.min(velocity * 0.01, 0.7);
     ctx.shadowColor = COLORS.NEON_GREEN;
-    ctx.shadowBlur = 8 * glowIntensity;
+    ctx.shadowBlur = 12 * glowIntensity; // More pronounced glow
     
     // Draw connected segment
     this.drawConnectedSegment(ctx, segment.position, prevPos, nextPos, segmentSize);
     
-    // Draw grid pattern
+    // Add segment border/outline
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#44ff44'; // Brighter green border
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(segment.position.x, segment.position.y, segmentSize / 2, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Draw grid pattern with animation
     this.drawGridPattern(renderer, 
       segment.position.x - segmentSize / 2, 
       segment.position.y - segmentSize / 2, 
-      segmentSize
+      segmentSize,
+      this.gameTime
     );
     
     ctx.restore();
@@ -324,7 +367,7 @@ export class Snake {
     ctx: CanvasRenderingContext2D, 
     pos: Vector2, 
     prevPos: Vector2, 
-    nextPos: Vector2 | null, 
+    _nextPos: Vector2 | null, 
     size: number
   ): void {
     ctx.fillStyle = COLORS.NEON_GREEN;
@@ -334,87 +377,156 @@ export class Snake {
     ctx.arc(pos.x, pos.y, size / 2, 0, Math.PI * 2);
     ctx.fill();
     
-    // Draw connections to previous segment
+    // Draw connections to previous segment with better blending
     if (prevPos) {
       const toPrev = prevPos.subtract(pos);
       const distance = toPrev.length();
-      if (distance > 0) {
+      if (distance > 0 && distance < size * 2) { // Only connect if close enough
         const direction = toPrev.normalize();
         const perpendicular = new Vector2(-direction.y, direction.x);
         
-        // Draw connection rectangle
-        const connectionLength = Math.min(distance, size);
-        const connectionWidth = size * 0.8;
+        // Draw smoother connection with rounded ends
+        const connectionLength = Math.min(distance * 0.8, size * 1.2);
+        const connectionWidth = size * 0.9; // Wider connection for seamless look
+        
+        // Create rounded rectangle connection
+        ctx.beginPath();
+        
+        // Start point (current segment edge)
+        const startX = pos.x + direction.x * (size / 2 * 0.3);
+        const startY = pos.y + direction.y * (size / 2 * 0.3);
+        
+        // End point (toward previous segment)
+        const endX = pos.x + direction.x * connectionLength;
+        const endY = pos.y + direction.y * connectionLength;
+        
+        // Draw connection as a rounded rectangle
+        const halfWidth = connectionWidth / 2;
+        
+        ctx.moveTo(startX + perpendicular.x * halfWidth, startY + perpendicular.y * halfWidth);
+        ctx.lineTo(endX + perpendicular.x * halfWidth, endY + perpendicular.y * halfWidth);
+        ctx.lineTo(endX - perpendicular.x * halfWidth, endY - perpendicular.y * halfWidth);
+        ctx.lineTo(startX - perpendicular.x * halfWidth, startY - perpendicular.y * halfWidth);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Add small connecting circles for even smoother appearance
+        ctx.beginPath();
+        ctx.arc(startX, startY, size / 2 * 0.8, 0, Math.PI * 2);
+        ctx.fill();
         
         ctx.beginPath();
-        ctx.moveTo(
-          pos.x + perpendicular.x * connectionWidth / 2,
-          pos.y + perpendicular.y * connectionWidth / 2
-        );
-        ctx.lineTo(
-          pos.x - perpendicular.x * connectionWidth / 2,
-          pos.y - perpendicular.y * connectionWidth / 2
-        );
-        ctx.lineTo(
-          pos.x + direction.x * connectionLength - perpendicular.x * connectionWidth / 2,
-          pos.y + direction.y * connectionLength - perpendicular.y * connectionWidth / 2
-        );
-        ctx.lineTo(
-          pos.x + direction.x * connectionLength + perpendicular.x * connectionWidth / 2,
-          pos.y + direction.y * connectionLength + perpendicular.y * connectionWidth / 2
-        );
-        ctx.closePath();
+        ctx.arc(endX, endY, size / 2 * 0.6, 0, Math.PI * 2);
         ctx.fill();
       }
     }
   }
 
-  private drawGridPattern(renderer: Renderer, x: number, y: number, size: number): void {
+  private drawGridPattern(renderer: Renderer, x: number, y: number, size: number, gameTime = 0): void {
     const ctx = renderer.getContext();
     ctx.save();
-    ctx.fillStyle = COLORS.DARK_BG;
     
-    const gridSpacing = Math.max(2, size / 8);
-    const lineWidth = 1;
+    // Subtle animation - grid opacity pulses very slowly
+    const pulseIntensity = 0.3 + 0.2 * Math.sin(gameTime * 0.5);
+    const baseColor = Math.floor(17 * pulseIntensity); // Animate from #001100 to slightly lighter
+    const colorHex = `#00${baseColor.toString(16).padStart(2, '0')}00`;
     
-    // Vertical lines
+    // Make grid lines more prominent and darker
+    ctx.strokeStyle = colorHex;
+    ctx.fillStyle = colorHex;
+    ctx.lineWidth = 1.5;
+    
+    const gridSpacing = Math.max(3, size / 6); // Larger, more visible grid
+    
+    // Draw crosshatch pattern like the reference
+    ctx.beginPath();
+    
+    // Vertical lines with subtle offset animation
+    const offsetX = Math.sin(gameTime * 0.3) * 0.5;
     for (let gx = gridSpacing; gx < size; gx += gridSpacing) {
-      ctx.fillRect(x + gx, y, lineWidth, size);
+      ctx.moveTo(x + gx + offsetX, y);
+      ctx.lineTo(x + gx + offsetX, y + size);
     }
     
-    // Horizontal lines
+    // Horizontal lines with subtle offset animation
+    const offsetY = Math.cos(gameTime * 0.3) * 0.5;
     for (let gy = gridSpacing; gy < size; gy += gridSpacing) {
-      ctx.fillRect(x, y + gy, size, lineWidth);
+      ctx.moveTo(x, y + gy + offsetY);
+      ctx.lineTo(x + size, y + gy + offsetY);
     }
+    
+    ctx.stroke();
+    
+    // Add subtle inner shadow effect to grid lines
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 1;
+    ctx.shadowOffsetX = 0.5;
+    ctx.shadowOffsetY = 0.5;
+    ctx.stroke();
     
     ctx.restore();
   }
 
-  private drawGridPatternOnCircle(renderer: Renderer, center: Vector2, size: number): void {
+  private drawGridPatternOnCircle(renderer: Renderer, center: Vector2, size: number, gameTime = 0): void {
     const ctx = renderer.getContext();
     ctx.save();
-    ctx.strokeStyle = COLORS.DARK_BG;
-    ctx.lineWidth = 1;
+    
+    // Subtle animation - grid opacity pulses very slowly
+    const pulseIntensity = 0.3 + 0.2 * Math.sin(gameTime * 0.4);
+    const baseColor = Math.floor(17 * pulseIntensity);
+    const colorHex = `#00${baseColor.toString(16).padStart(2, '0')}00`;
+    
+    // Make head grid more prominent
+    ctx.strokeStyle = colorHex;
+    ctx.lineWidth = 1.5;
     
     const radius = size / 2;
-    const gridSpacing = Math.max(3, size / 10);
+    const gridSpacing = Math.max(4, size / 8);
     
-    // Draw radial lines
-    for (let i = 0; i < 8; i++) {
-      const angle = (i * Math.PI * 2) / 8;
+    // Rotating animation offset for radial lines
+    const rotationOffset = gameTime * 0.1;
+    
+    // Draw radial lines (more of them for better crosshatch effect)
+    for (let i = 0; i < 12; i++) {
+      const angle = (i * Math.PI * 2) / 12 + rotationOffset;
       ctx.beginPath();
       ctx.moveTo(center.x, center.y);
       ctx.lineTo(
-        center.x + Math.cos(angle) * radius * 0.8,
-        center.y + Math.sin(angle) * radius * 0.8
+        center.x + Math.cos(angle) * radius * 0.85,
+        center.y + Math.sin(angle) * radius * 0.85
       );
       ctx.stroke();
     }
     
-    // Draw concentric circles
+    // Draw concentric circles with subtle pulsing
+    const radiusPulse = Math.sin(gameTime * 0.6) * 0.5;
     for (let r = gridSpacing; r < radius; r += gridSpacing) {
       ctx.beginPath();
-      ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
+      ctx.arc(center.x, center.y, r + radiusPulse, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    
+    // Add shadow effect
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 1;
+    ctx.shadowOffsetX = 0.5;
+    ctx.shadowOffsetY = 0.5;
+    
+    // Redraw for shadow effect
+    for (let i = 0; i < 12; i++) {
+      const angle = (i * Math.PI * 2) / 12 + rotationOffset;
+      ctx.beginPath();
+      ctx.moveTo(center.x, center.y);
+      ctx.lineTo(
+        center.x + Math.cos(angle) * radius * 0.85,
+        center.y + Math.sin(angle) * radius * 0.85
+      );
+      ctx.stroke();
+    }
+    
+    for (let r = gridSpacing; r < radius; r += gridSpacing) {
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, r + radiusPulse, 0, Math.PI * 2);
       ctx.stroke();
     }
     
