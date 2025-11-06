@@ -46,23 +46,6 @@ export class Game {
       (deltaTime) => this.update(deltaTime),
       () => this.render()
     );
-
-    this.setupPauseMenu();
-  }
-
-  private setupPauseMenu(): void {
-    const continueBtn = document.getElementById('continueBtn')!;
-    const quitBtn = document.getElementById('quitBtn')!;
-
-    continueBtn.addEventListener('click', () => {
-      this.gameState.resume();
-      this.updatePauseMenuVisibility();
-    });
-
-    quitBtn.addEventListener('click', () => {
-      this.gameState.gameOver();
-      this.updatePauseMenuVisibility();
-    });
   }
 
   start(): void {
@@ -183,10 +166,6 @@ export class Game {
 
     // Render particle effects
     this.particleSystem.render(this.renderer);
-
-    if (this.gameState.isPaused()) {
-      this.renderer.drawText('PAUSED', 350, 250, COLORS.CYAN_ACCENT);
-    }
   }
 
   private generateFood(): void {

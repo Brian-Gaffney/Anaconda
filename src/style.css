@@ -80,10 +80,10 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding-top: 50px;
   pointer-events: all;
 }
 
@@ -94,7 +94,7 @@ body {
 .menu-content {
   background-color: var(--dark-bg);
   border: 2px solid var(--border-color);
-  padding: 30px;
+  padding: 15px 40px;
   text-align: center;
   color: var(--neon-green);
 }
@@ -102,7 +102,7 @@ body {
 .menu-content h2 {
   color: var(--cyan-accent);
   font-size: 24px;
-  margin-bottom: 20px;
+  margin: 0;
   text-shadow: 0 0 8px var(--cyan-accent);
 }
 
