@@ -49,6 +49,19 @@ body {
   pointer-events: none;
 }
 
+#title {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--border-color);
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow: 0 0 8px var(--border-color);
+  letter-spacing: 4px;
+  font-family: 'Courier New', monospace;
+}
+
 #score {
   position: absolute;
   top: -40px;
