@@ -36,11 +36,18 @@ export class Snake {
     this.headPosition = startPosition.clone();
     this.currentAngle = 0; // Start facing right
     this.headVelocity = new Vector2(this.baseSpeed, 0);
-    
-    // Initialize trail with starting point
-    this.trailPoints = [startPosition.clone()];
+
+    // Initialize trail with full length going backwards from start position
+    this.trailPoints = [];
+    for (let i = 0; i <= this.maxTrailLength; i += this.trailPointSpacing) {
+      const trailPoint = new Vector2(
+        startPosition.x - i, // Extend backwards (to the left)
+        startPosition.y
+      );
+      this.trailPoints.push(trailPoint);
+    }
     this.lastTrailPoint = startPosition.clone();
-    
+
     // Initialize segments for collision detection (still needed for game logic)
     this.segments = [];
     for (let i = 0; i < GAME_CONFIG.INITIAL_SNAKE_LENGTH; i++) {
