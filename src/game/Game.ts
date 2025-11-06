@@ -21,6 +21,7 @@ export class Game {
   private audioManager: AudioManager;
   private scoreElement: HTMLElement;
   private pauseMenuElement: HTMLElement;
+  private gameOverMenuElement: HTMLElement;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new Renderer(canvas);
@@ -41,6 +42,7 @@ export class Game {
 
     this.scoreElement = document.getElementById('score')!;
     this.pauseMenuElement = document.getElementById('pauseMenu')!;
+    this.gameOverMenuElement = document.getElementById('gameOverMenu')!;
 
     this.gameLoop = new GameLoop(
       (deltaTime) => this.update(deltaTime),
@@ -71,10 +73,10 @@ export class Game {
           this.gameState.resume();
           this.audioManager.play();
         }
-        this.updatePauseMenuVisibility();
+        this.updateMenuVisibility();
       } else if (keyPress === 'm' || keyPress === 'M') {
         this.audioManager.toggleMute();
-      } else if (keyPress === ' ' && this.gameState.isGameOver()) {
+      } else if (keyPress === 'Enter' && this.gameState.isGameOver()) {
         this.restartGame();
       }
     }
@@ -113,12 +115,8 @@ export class Game {
 
       // Check food collision
       if (food.checkCollisionWithSnake(snakePositions)) {
-        // Snake ate food - create particle effects
-        this.particleSystem.createFoodEatenEffect(food.getPosition());
-        this.particleSystem.createSnakeGrowthEffect(this.snake.getHeadPosition());
-
         this.gameState.addScore(food.getPoints());
-        this.snake.addGrowth(1);
+        this.snake.addGrowth(food.getGrowthAmount());
 
         // Remove eaten food and spawn new one
         this.foodItems.splice(i, 1);
@@ -136,22 +134,13 @@ export class Game {
       
       this.gameState.gameOver();
       this.audioManager.pause();
-      this.updatePauseMenuVisibility();
+      this.updateMenuVisibility();
     }
   }
 
   private render(): void {
     this.renderer.clear();
-
-    if (this.gameState.isPlaying() || this.gameState.isPaused()) {
-      this.renderGame();
-    } else if (this.gameState.isGameOver()) {
-      // Still render the game scene in background
-      this.renderGame();
-      // Then render game over screen on top
-      this.renderGameOverScreen();
-    }
-
+    this.renderGame();
     this.updateUI();
   }
 
@@ -184,65 +173,17 @@ export class Game {
     this.scoreElement.textContent = score.toString().padStart(5, '0');
   }
 
-  private updatePauseMenuVisibility(): void {
+  private updateMenuVisibility(): void {
     if (this.gameState.isPaused()) {
       this.pauseMenuElement.classList.remove('hidden');
+      this.gameOverMenuElement.classList.add('hidden');
+    } else if (this.gameState.isGameOver()) {
+      this.pauseMenuElement.classList.add('hidden');
+      this.gameOverMenuElement.classList.remove('hidden');
     } else {
       this.pauseMenuElement.classList.add('hidden');
+      this.gameOverMenuElement.classList.add('hidden');
     }
-  }
-
-  private renderGameOverScreen(): void {
-    const ctx = this.renderer.getContext();
-    const centerX = GAME_CONFIG.CANVAS_WIDTH / 2;
-    const centerY = GAME_CONFIG.CANVAS_HEIGHT / 2;
-    
-    // Semi-transparent overlay
-    ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
-    ctx.restore();
-    
-    // Game Over title with large font
-    ctx.save();
-    ctx.font = 'bold 48px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = COLORS.RED_FOOD;
-    ctx.shadowColor = COLORS.RED_FOOD;
-    ctx.shadowBlur = 12;
-    ctx.fillText('GAME OVER', centerX, centerY - 60);
-    ctx.restore();
-    
-    // Final score display
-    const finalScore = this.gameState.getScore();
-    ctx.save();
-    ctx.font = 'bold 32px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = COLORS.NEON_GREEN;
-    ctx.shadowColor = COLORS.NEON_GREEN;
-    ctx.shadowBlur = 8;
-    ctx.fillText(`Final Score: ${finalScore}`, centerX, centerY - 10);
-    ctx.restore();
-    
-    // Restart instructions
-    ctx.save();
-    ctx.font = 'bold 20px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = COLORS.CYAN_ACCENT;
-    ctx.shadowColor = COLORS.CYAN_ACCENT;
-    ctx.shadowBlur = 6;
-    ctx.fillText('Press SPACE to restart', centerX, centerY + 40);
-    ctx.restore();
-    
-    // Additional instructions
-    ctx.save();
-    ctx.font = '16px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = COLORS.BORDER_COLOR;
-    ctx.shadowColor = COLORS.BORDER_COLOR;
-    ctx.shadowBlur = 4;
-    ctx.fillText('Press M to mute/unmute', centerX, centerY + 70);
-    ctx.restore();
   }
 
   private restartGame(): void {
@@ -268,6 +209,6 @@ export class Game {
 
     // Update UI
     this.updateUI();
-    this.updatePauseMenuVisibility();
+    this.updateMenuVisibility();
   }
 }

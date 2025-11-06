@@ -12,6 +12,7 @@ export class Food {
   private position: Vector2;
   private size: number;
   private points: number;
+  private growthAmount: number;
   private glowPhase = 0;
   private lifetime: number; // Duration in milliseconds
   private elapsedTime = 0;
@@ -25,9 +26,10 @@ export class Food {
     this.size = GAME_CONFIG.FOOD_SIZE;
     this.type = type;
 
-    // Set points based on type
+    // Set points and growth based on type
     if (type === FoodType.BLUE) {
       this.points = 500;
+      this.growthAmount = 10; // Significantly more growth
       // Random velocity for blue food
       const angle = Math.random() * Math.PI * 2;
       this.velocity = new Vector2(
@@ -36,6 +38,7 @@ export class Food {
       );
     } else {
       this.points = 100;
+      this.growthAmount = 3; // Increased from 1 to 3
     }
 
     // Random lifetime between 8 and 20 seconds
@@ -141,8 +144,8 @@ export class Food {
     const headPosition = snakeSegments[0];
     if (!headPosition) return false;
 
-    // More generous collision detection - 1.5x radius for easier collection
-    const collisionMultiplier = 1.5;
+    // Slightly generous collision detection - 1.2x radius for easier collection
+    const collisionMultiplier = 1.2;
     return Collision.circleToCircle(
       this.position,
       (this.size / 2) * collisionMultiplier,
@@ -157,6 +160,10 @@ export class Food {
 
   getPoints(): number {
     return this.points;
+  }
+
+  getGrowthAmount(): number {
+    return this.growthAmount;
   }
 
   render(renderer: Renderer): void {

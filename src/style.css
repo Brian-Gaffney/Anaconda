@@ -74,7 +74,7 @@ body {
   font-family: 'Courier New', monospace;
 }
 
-#pauseMenu {
+#pauseMenu, #gameOverMenu {
   position: absolute;
   top: 0;
   left: 0;
@@ -87,7 +87,7 @@ body {
   pointer-events: all;
 }
 
-#pauseMenu.hidden {
+#pauseMenu.hidden, #gameOverMenu.hidden {
   display: none;
 }
 
@@ -127,4 +127,12 @@ button:hover {
 button:focus {
   outline: 2px solid var(--cyan-accent);
   outline-offset: 2px;
+}
+
+#okText {
+  color: var(--red-food);
+  font-size: 24px;
+  font-weight: bold;
+  margin-top: 15px;
+  text-shadow: 0 0 8px var(--red-food);
 }

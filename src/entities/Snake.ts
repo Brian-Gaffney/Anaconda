@@ -305,7 +305,7 @@ export class Snake {
   }
 
   private drawTubeOutline(ctx: CanvasRenderingContext2D, pathPoints: Vector2[]): void {
-    const tubeWidth = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 0.8;
+    const tubeWidth = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 1.0;
     const halfWidth = tubeWidth / 2;
     const headSegmentLength = 15; // Each segment is ~15px
     const tailTaperLength = 100; // Last 5 segments (5 * 20px)
@@ -415,7 +415,7 @@ export class Snake {
 
   private drawCrossLines(ctx: CanvasRenderingContext2D, pathPoints: Vector2[]): void {
     const crossLineSpacing = 20; // Every 20px
-    const tubeWidth = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 0.8;
+    const tubeWidth = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 1.0;
     const halfWidth = tubeWidth / 2;
     const headSegmentLength = 15; // Each segment is ~15px
     const tailTaperLength = 100; // Last 5 segments (5 * 20px)
