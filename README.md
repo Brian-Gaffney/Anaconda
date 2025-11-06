@@ -2,6 +2,8 @@
 
 A web-based snake clone inspired by the "Anaconda" mini-game from Timesplitters 2.
 
+Reference video: https://www.youtube.com/watch?v=h22thYhPCNw
+
 ## Gameplay
 
 This is a 2D snake-style game with a retro neon line aesthetic. Unlike classic Snake, the player-controlled snake is articulated and can rotate smoothly, allowing for more fluid movement.

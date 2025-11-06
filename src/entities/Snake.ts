@@ -26,6 +26,11 @@ export class Snake {
   private maxTrailLength = 300; // Maximum length of trail in pixels
   private trailPointSpacing = 4; // Add trail points every 4 pixels
   private lastTrailPoint: Vector2 | null = null;
+  
+  // Performance optimization caches
+  private cachedSegmentLengths: number[] = [];
+  private cachedTotalLength = 0;
+  private cacheValid = false;
 
   constructor(startPosition: Vector2) {
     this.headPosition = startPosition.clone();
@@ -102,6 +107,9 @@ export class Snake {
         this.trailPoints.unshift(this.headPosition.clone());
         this.lastTrailPoint = this.headPosition.clone();
         
+        // Invalidate cache when trail changes
+        this.cacheValid = false;
+        
         // Remove old points to maintain max trail length
         this.trimTrail();
       }
@@ -109,20 +117,34 @@ export class Snake {
   }
 
   private trimTrail(): void {
-    // Calculate total trail length
-    let totalLength = 0;
-    for (let i = 1; i < this.trailPoints.length; i++) {
-      totalLength += this.trailPoints[i - 1].distance(this.trailPoints[i]);
+    // Use cached calculation if available
+    if (!this.cacheValid) {
+      this.updateLengthCache();
     }
     
     // Remove points from the tail until we're under max length
-    while (totalLength > this.maxTrailLength && this.trailPoints.length > 2) {
+    while (this.cachedTotalLength > this.maxTrailLength && this.trailPoints.length > 2) {
       const removedPoint = this.trailPoints.pop();
       if (removedPoint && this.trailPoints.length > 0) {
         const lastPoint = this.trailPoints[this.trailPoints.length - 1];
-        totalLength -= lastPoint.distance(removedPoint);
+        const removedLength = lastPoint.distance(removedPoint);
+        this.cachedTotalLength -= removedLength;
+        this.cachedSegmentLengths.pop();
       }
     }
+  }
+
+  private updateLengthCache(): void {
+    this.cachedSegmentLengths = [];
+    this.cachedTotalLength = 0;
+    
+    for (let i = 1; i < this.trailPoints.length; i++) {
+      const length = this.trailPoints[i - 1].distance(this.trailPoints[i]);
+      this.cachedSegmentLengths.push(length);
+      this.cachedTotalLength += length;
+    }
+    
+    this.cacheValid = true;
   }
 
   private updateSegments(dt: number): void {
@@ -248,79 +270,138 @@ export class Snake {
   render(renderer: Renderer): void {
     const ctx = renderer.getContext();
     ctx.save();
-    
+
     // Set up minimal green line style
     ctx.strokeStyle = COLORS.NEON_GREEN;
     ctx.lineWidth = 2;
-    
+
     // Get the continuous path of the snake
     const pathPoints = this.calculateSnakePath();
-    
+
     if (pathPoints.length < 2) {
       ctx.restore();
       return;
     }
-    
-    // Draw the continuous tube outline
+
+    // Draw the continuous tube outline (with tapered head)
     this.drawTubeOutline(ctx, pathPoints);
-    
-    // Draw perpendicular cross-lines every ~20px
+
+    // Draw perpendicular cross-lines every ~20px (includes the cap)
     this.drawCrossLines(ctx, pathPoints);
-    
+
     ctx.restore();
   }
 
   private calculateSnakePath(): Vector2[] {
-    // Use the fixed trail points for rendering
-    // Trail points are already in order from head to tail
-    return [...this.trailPoints];
+    // Return direct reference to avoid copying - rendering won't modify it
+    return this.trailPoints;
   }
 
   private drawTubeOutline(ctx: CanvasRenderingContext2D, pathPoints: Vector2[]): void {
     const tubeWidth = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 0.8;
     const halfWidth = tubeWidth / 2;
-    
+    const headSegmentLength = 15; // Each segment is ~15px
+    const tailTaperLength = 100; // Last 5 segments (5 * 20px)
+
     if (pathPoints.length < 2) return;
-    
-    // Calculate the outline points for both sides of the tube
-    const leftSide: Vector2[] = [];
-    const rightSide: Vector2[] = [];
-    
+
+    // Use cached segment lengths if available
+    if (!this.cacheValid) {
+      this.updateLengthCache();
+    }
+
+    const totalLength = this.cachedTotalLength;
+
+    // Calculate width at each point based on distance from head
+    // Creates a bulbous hexagonal head shape and tapered tail
+    const getWidthAtDistance = (distance: number): number => {
+      const distanceFromTail = totalLength - distance;
+
+      // Head bulge (first 30px)
+      if (distance <= headSegmentLength) {
+        // First segment: expand from 100% to 140% (bulge outward)
+        const t = distance / headSegmentLength; // 0 to 1
+        return halfWidth * (1.0 + 0.4 * t); // 100% -> 140%
+      } else if (distance <= headSegmentLength * 2) {
+        // Second segment: contract from 140% back to 100% (normal width)
+        const t = (distance - headSegmentLength) / headSegmentLength; // 0 to 1
+        return halfWidth * (1.4 - 0.4 * t); // 140% -> 100%
+      }
+
+      // Tail taper (last 100px)
+      if (distanceFromTail <= tailTaperLength) {
+        // Taper from 100% to 20% over last 5 segments
+        const t = distanceFromTail / tailTaperLength; // 0 to 1 (0 at tail tip)
+        return halfWidth * (0.2 + 0.8 * t); // 20% -> 100%
+      }
+
+      return halfWidth;
+    };
+
+    // More efficient: draw both sides without pre-calculating all points
+    ctx.beginPath();
+
+    // Calculate and draw left side
+    let currentDistance = 0;
     for (let i = 0; i < pathPoints.length; i++) {
       const current = pathPoints[i];
       let direction: Vector2;
-      
+
       if (i === 0) {
-        // First point - use direction to next point
         direction = pathPoints[i + 1].subtract(current).normalize();
       } else if (i === pathPoints.length - 1) {
-        // Last point - use direction from previous point
         direction = current.subtract(pathPoints[i - 1]).normalize();
       } else {
-        // Middle points - average direction
-        const dirToPrev = current.subtract(pathPoints[i - 1]).normalize();
-        const dirToNext = pathPoints[i + 1].subtract(current).normalize();
-        direction = dirToPrev.add(dirToNext).normalize();
+        // Simplified direction calculation - just use current segment direction
+        direction = pathPoints[i + 1].subtract(pathPoints[i - 1]).normalize();
       }
-      
+
+      const width = getWidthAtDistance(currentDistance);
       const perpendicular = new Vector2(-direction.y, direction.x);
-      leftSide.push(current.add(perpendicular.multiply(halfWidth)));
-      rightSide.push(current.subtract(perpendicular.multiply(halfWidth)));
-    }
-    
-    // Draw left side
-    ctx.beginPath();
-    ctx.moveTo(leftSide[0].x, leftSide[0].y);
-    for (let i = 1; i < leftSide.length; i++) {
-      ctx.lineTo(leftSide[i].x, leftSide[i].y);
+      const leftPoint = current.add(perpendicular.multiply(width));
+
+      if (i === 0) {
+        ctx.moveTo(leftPoint.x, leftPoint.y);
+      } else {
+        ctx.lineTo(leftPoint.x, leftPoint.y);
+      }
+
+      // Update distance for next iteration
+      if (i < this.cachedSegmentLengths.length) {
+        currentDistance += this.cachedSegmentLengths[i];
+      }
     }
     ctx.stroke();
-    
+
     // Draw right side
     ctx.beginPath();
-    ctx.moveTo(rightSide[0].x, rightSide[0].y);
-    for (let i = 1; i < rightSide.length; i++) {
-      ctx.lineTo(rightSide[i].x, rightSide[i].y);
+    currentDistance = 0;
+    for (let i = 0; i < pathPoints.length; i++) {
+      const current = pathPoints[i];
+      let direction: Vector2;
+
+      if (i === 0) {
+        direction = pathPoints[i + 1].subtract(current).normalize();
+      } else if (i === pathPoints.length - 1) {
+        direction = current.subtract(pathPoints[i - 1]).normalize();
+      } else {
+        direction = pathPoints[i + 1].subtract(pathPoints[i - 1]).normalize();
+      }
+
+      const width = getWidthAtDistance(currentDistance);
+      const perpendicular = new Vector2(-direction.y, direction.x);
+      const rightPoint = current.subtract(perpendicular.multiply(width));
+
+      if (i === 0) {
+        ctx.moveTo(rightPoint.x, rightPoint.y);
+      } else {
+        ctx.lineTo(rightPoint.x, rightPoint.y);
+      }
+
+      // Update distance for next iteration
+      if (i < this.cachedSegmentLengths.length) {
+        currentDistance += this.cachedSegmentLengths[i];
+      }
     }
     ctx.stroke();
   }
@@ -329,37 +410,93 @@ export class Snake {
     const crossLineSpacing = 20; // Every 20px
     const tubeWidth = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 0.8;
     const halfWidth = tubeWidth / 2;
-    
+    const headSegmentLength = 15; // Each segment is ~15px
+    const tailTaperLength = 100; // Last 5 segments (5 * 20px)
+
     if (pathPoints.length < 2) return;
-    
-    // Calculate total path length and sample points
-    let totalLength = 0;
-    const segmentLengths: number[] = [];
-    
-    for (let i = 1; i < pathPoints.length; i++) {
-      const length = pathPoints[i].distance(pathPoints[i - 1]);
-      segmentLengths.push(length);
-      totalLength += length;
+
+    // Use cached segment lengths if available
+    if (!this.cacheValid) {
+      this.updateLengthCache();
     }
-    
+
+    const totalLength = this.cachedTotalLength;
+
+    // Calculate width at each point based on distance from head
+    // Creates a bulbous hexagonal head shape and tapered tail
+    const getWidthAtDistance = (distance: number): number => {
+      const distanceFromTail = totalLength - distance;
+
+      // Head bulge (first 30px)
+      if (distance <= headSegmentLength) {
+        // First segment: expand from 100% to 140% (bulge outward)
+        const t = distance / headSegmentLength; // 0 to 1
+        return halfWidth * (1.0 + 0.4 * t); // 100% -> 140%
+      } else if (distance <= headSegmentLength * 2) {
+        // Second segment: contract from 140% back to 100% (normal width)
+        const t = (distance - headSegmentLength) / headSegmentLength; // 0 to 1
+        return halfWidth * (1.4 - 0.4 * t); // 140% -> 100%
+      }
+
+      // Tail taper (last 100px)
+      if (distanceFromTail <= tailTaperLength) {
+        // Taper from 100% to 20% over last 5 segments
+        const t = distanceFromTail / tailTaperLength; // 0 to 1 (0 at tail tip)
+        return halfWidth * (0.2 + 0.8 * t); // 20% -> 100%
+      }
+
+      return halfWidth;
+    };
+
+    // Draw cross-line at the very front (the cap)
+    if (pathPoints.length >= 2) {
+      const direction = pathPoints[1].subtract(pathPoints[0]).normalize();
+      const perpendicular = new Vector2(-direction.y, direction.x);
+      const width = getWidthAtDistance(0);
+      const start = this.headPosition.add(perpendicular.multiply(width));
+      const end = this.headPosition.subtract(perpendicular.multiply(width));
+
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+    }
+
+    // Draw cross-line at the very end (tail cap)
+    if (pathPoints.length >= 2) {
+      const tailPoint = pathPoints[pathPoints.length - 1];
+      const prevPoint = pathPoints[pathPoints.length - 2];
+      const direction = tailPoint.subtract(prevPoint).normalize();
+      const perpendicular = new Vector2(-direction.y, direction.x);
+      const width = getWidthAtDistance(totalLength);
+      const start = tailPoint.add(perpendicular.multiply(width));
+      const end = tailPoint.subtract(perpendicular.multiply(width));
+
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+    }
+
     // Draw cross-lines at regular intervals
     let nextCrossLine = crossLineSpacing;
-    
-    while (nextCrossLine < totalLength) {
-      const position = this.getPositionAtDistance(pathPoints, segmentLengths, nextCrossLine);
-      const direction = this.getDirectionAtDistance(pathPoints, segmentLengths, nextCrossLine);
-      
+
+    while (nextCrossLine < this.cachedTotalLength) {
+      const position = this.getPositionAtDistance(pathPoints, this.cachedSegmentLengths, nextCrossLine);
+      const direction = this.getDirectionAtDistance(pathPoints, this.cachedSegmentLengths, nextCrossLine);
+
       if (position && direction) {
+        const width = getWidthAtDistance(nextCrossLine);
         const perpendicular = new Vector2(-direction.y, direction.x);
-        const start = position.add(perpendicular.multiply(halfWidth));
-        const end = position.subtract(perpendicular.multiply(halfWidth));
-        
+        const start = position.add(perpendicular.multiply(width));
+        const end = position.subtract(perpendicular.multiply(width));
+
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
         ctx.stroke();
       }
-      
+
       nextCrossLine += crossLineSpacing;
     }
   }
@@ -386,20 +523,20 @@ export class Snake {
 
   private getDirectionAtDistance(pathPoints: Vector2[], segmentLengths: number[], targetDistance: number): Vector2 | null {
     let currentDistance = 0;
-    
+
     for (let i = 0; i < segmentLengths.length; i++) {
       const segmentLength = segmentLengths[i];
-      
+
       if (currentDistance + segmentLength >= targetDistance) {
         // Target is within this segment
         const start = pathPoints[i];
         const end = pathPoints[i + 1];
         return end.subtract(start).normalize();
       }
-      
+
       currentDistance += segmentLength;
     }
-    
+
     return null;
   }
 
