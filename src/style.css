@@ -51,13 +51,14 @@ body {
 
 #score {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: -40px;
+  left: 0;
   color: var(--neon-green);
-  font-size: 18px;
+  font-size: 24px;
   font-weight: bold;
   text-shadow: 0 0 8px var(--neon-green);
-  pointer-events: none;
+  letter-spacing: 4px;
+  font-family: 'Courier New', monospace;
 }
 
 #pauseMenu {

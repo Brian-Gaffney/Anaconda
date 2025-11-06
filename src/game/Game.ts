@@ -200,7 +200,9 @@ export class Game {
   }
 
   private updateUI(): void {
-    this.scoreElement.textContent = `Score: ${this.gameState.getScore()}`;
+    // Format score as 5 digits with leading zeros
+    const score = this.gameState.getScore();
+    this.scoreElement.textContent = score.toString().padStart(5, '0');
   }
 
   private updatePauseMenuVisibility(): void {
