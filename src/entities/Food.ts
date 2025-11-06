@@ -3,16 +3,43 @@ import { COLORS, GAME_CONFIG } from '../game/constants.js';
 import { Renderer } from '../rendering/Renderer.js';
 import { Collision } from '../utils/Collision.js';
 
+export enum FoodType {
+  RED = 'red',
+  BLUE = 'blue'
+}
+
 export class Food {
   private position: Vector2;
   private size: number;
   private points: number;
   private glowPhase = 0;
+  private lifetime: number; // Duration in milliseconds
+  private elapsedTime = 0;
+  private expired = false;
+  private type: FoodType;
+  private velocity: Vector2 = Vector2.zero(); // For bouncing blue food
+  private speed = 200; // pixels per second for blue food
 
-  constructor(position: Vector2, points = 10) {
+  constructor(position: Vector2, type: FoodType = FoodType.RED) {
     this.position = position.clone();
     this.size = GAME_CONFIG.FOOD_SIZE;
-    this.points = points;
+    this.type = type;
+
+    // Set points based on type
+    if (type === FoodType.BLUE) {
+      this.points = 500;
+      // Random velocity for blue food
+      const angle = Math.random() * Math.PI * 2;
+      this.velocity = new Vector2(
+        Math.cos(angle) * this.speed,
+        Math.sin(angle) * this.speed
+      );
+    } else {
+      this.points = 100;
+    }
+
+    // Random lifetime between 8 and 20 seconds
+    this.lifetime = (8 + Math.random() * 12) * 1000;
   }
 
   static generateRandomPosition(
@@ -50,23 +77,77 @@ export class Food {
     );
   }
 
-  update(deltaTime: number): void {
+  update(deltaTime: number, snakePositions: Vector2[] = []): void {
     // Animate glow effect
     this.glowPhase += deltaTime * 0.003;
     if (this.glowPhase > Math.PI * 2) {
       this.glowPhase = 0;
     }
+
+    // Track lifetime
+    this.elapsedTime += deltaTime;
+    if (this.elapsedTime >= this.lifetime) {
+      this.expired = true;
+    }
+
+    // Move blue food and handle bouncing
+    if (this.type === FoodType.BLUE) {
+      const dt = deltaTime * 0.001; // Convert to seconds
+
+      // Update position
+      this.position = this.position.add(this.velocity.multiply(dt));
+
+      const margin = this.size / 2;
+
+      // Bounce off walls
+      if (this.position.x <= margin) {
+        this.position.x = margin;
+        this.velocity.x = Math.abs(this.velocity.x);
+      } else if (this.position.x >= GAME_CONFIG.CANVAS_WIDTH - margin) {
+        this.position.x = GAME_CONFIG.CANVAS_WIDTH - margin;
+        this.velocity.x = -Math.abs(this.velocity.x);
+      }
+
+      if (this.position.y <= margin) {
+        this.position.y = margin;
+        this.velocity.y = Math.abs(this.velocity.y);
+      } else if (this.position.y >= GAME_CONFIG.CANVAS_HEIGHT - margin) {
+        this.position.y = GAME_CONFIG.CANVAS_HEIGHT - margin;
+        this.velocity.y = -Math.abs(this.velocity.y);
+      }
+
+      // Bounce off snake
+      for (const snakePos of snakePositions) {
+        const distance = this.position.distance(snakePos);
+        const minDistance = this.size / 2 + GAME_CONFIG.SNAKE_SEGMENT_SIZE / 2;
+
+        if (distance < minDistance && distance > 0) {
+          // Calculate bounce direction away from snake segment
+          const bounceDir = this.position.subtract(snakePos).normalize();
+          this.velocity = bounceDir.multiply(this.speed);
+          // Push food away to avoid overlapping
+          this.position = snakePos.add(bounceDir.multiply(minDistance));
+          break;
+        }
+      }
+    }
+  }
+
+  isExpired(): boolean {
+    return this.expired;
   }
 
   checkCollisionWithSnake(snakeSegments: Vector2[]): boolean {
     const headPosition = snakeSegments[0];
     if (!headPosition) return false;
 
+    // More generous collision detection - 1.5x radius for easier collection
+    const collisionMultiplier = 1.5;
     return Collision.circleToCircle(
       this.position,
-      this.size / 2,
+      (this.size / 2) * collisionMultiplier,
       headPosition,
-      GAME_CONFIG.SNAKE_SEGMENT_SIZE / 2
+      (GAME_CONFIG.SNAKE_SEGMENT_SIZE / 2) * collisionMultiplier
     );
   }
 
@@ -79,51 +160,28 @@ export class Food {
   }
 
   render(renderer: Renderer): void {
-    // Animated glow effect
-    const glowIntensity = 0.8 + Math.sin(this.glowPhase) * 0.4;
-    const pulseScale = 1 + Math.sin(this.glowPhase * 1.5) * 0.1;
-    
-    const currentSize = this.size * pulseScale;
-    
-    // Draw main food circle with enhanced glow
-    renderer.drawGlowingCircle(
-      this.position.x,
-      this.position.y,
-      currentSize / 2,
-      COLORS.RED_FOOD,
-      glowIntensity
-    );
-
-    // Enhanced cross pattern with glow
-    const crossSize = currentSize * 0.7;
-    const crossThickness = 3;
-    
     const ctx = renderer.getContext();
     ctx.save();
-    
-    // Add glow to cross pattern
-    ctx.shadowColor = COLORS.DARK_BG;
-    ctx.shadowBlur = 2;
-    ctx.fillStyle = COLORS.DARK_BG;
-    
-    // Horizontal line with rounded ends
-    const hx = this.position.x - crossSize / 2;
-    const hy = this.position.y - crossThickness / 2;
-    ctx.fillRect(hx, hy, crossSize, crossThickness);
-    
-    // Vertical line with rounded ends
-    const vx = this.position.x - crossThickness / 2;
-    const vy = this.position.y - crossSize / 2;
-    ctx.fillRect(vx, vy, crossThickness, crossSize);
-    
-    // Add small bright center dot
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 4;
-    ctx.fillStyle = '#ffffff';
+
+    // Draw "X" with color based on type
+    const color = this.type === FoodType.BLUE ? '#00ffff' : COLORS.RED_FOOD; // Vibrant cyan/blue
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+
+    const halfSize = this.size / 2;
+
+    // First diagonal line (top-left to bottom-right)
     ctx.beginPath();
-    ctx.arc(this.position.x, this.position.y, 1, 0, Math.PI * 2);
-    ctx.fill();
-    
+    ctx.moveTo(this.position.x - halfSize, this.position.y - halfSize);
+    ctx.lineTo(this.position.x + halfSize, this.position.y + halfSize);
+    ctx.stroke();
+
+    // Second diagonal line (top-right to bottom-left)
+    ctx.beginPath();
+    ctx.moveTo(this.position.x + halfSize, this.position.y - halfSize);
+    ctx.lineTo(this.position.x - halfSize, this.position.y + halfSize);
+    ctx.stroke();
+
     ctx.restore();
   }
 }

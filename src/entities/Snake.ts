@@ -15,7 +15,7 @@ export class Snake {
   private headPosition: Vector2;
   private headVelocity: Vector2;
   private currentAngle: number = 0; // Current heading in radians
-  private baseSpeed = 80; // pixels per second
+  private baseSpeed = 120; // pixels per second
   private baseTurnRate = 2.5; // radians per second turning speed
   private segmentSpacing = GAME_CONFIG.SNAKE_SEGMENT_SIZE;
   private growthPending = 0;
@@ -68,7 +68,7 @@ export class Snake {
     this.gameTime += dt; // Update game time for animations
     
     // Calculate current speed and turn rate based on boost state
-    const currentSpeed = this.isBoosting ? this.baseSpeed * 1.3 : this.baseSpeed;
+    const currentSpeed = this.isBoosting ? this.baseSpeed * 1.8 : this.baseSpeed;
     const currentTurnRate = this.isBoosting ? this.baseTurnRate * 0.7 : this.baseTurnRate;
     
     // Apply continuous rotation based on input

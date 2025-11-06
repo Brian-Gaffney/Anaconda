@@ -3,7 +3,7 @@ import { GameState, GameStateType } from './GameState.js';
 import { Renderer } from '../rendering/Renderer.js';
 import { InputManager, Direction } from '../input/InputManager.js';
 import { Snake } from '../entities/Snake.js';
-import { Food } from '../entities/Food.js';
+import { Food, FoodType } from '../entities/Food.js';
 import { Vector2 } from '../entities/Vector2.js';
 import { ParticleSystem } from '../rendering/effects/ParticleSystem.js';
 import { AudioManager } from '../audio/AudioManager.js';
@@ -15,7 +15,8 @@ export class Game {
   private renderer: Renderer;
   private inputManager: InputManager;
   private snake: Snake;
-  private food: Food | null = null;
+  private foodItems: Food[] = [];
+  private maxFoodItems = 5; // Allow up to 5 food items at once
   private particleSystem: ParticleSystem;
   private audioManager: AudioManager;
   private scoreElement: HTMLElement;
@@ -32,9 +33,11 @@ export class Game {
     const centerX = GAME_CONFIG.CANVAS_WIDTH / 2;
     const centerY = GAME_CONFIG.CANVAS_HEIGHT / 2;
     this.snake = new Snake(new Vector2(centerX, centerY));
-    
-    // Generate initial food
-    this.generateFood();
+
+    // Generate initial food items
+    for (let i = 0; i < this.maxFoodItems; i++) {
+      this.generateFood();
+    }
 
     this.scoreElement = document.getElementById('score')!;
     this.pauseMenuElement = document.getElementById('pauseMenu')!;
@@ -111,25 +114,37 @@ export class Game {
 
     // Update snake
     this.snake.update(deltaTime);
-    
-    // Update food
-    if (this.food) {
-      this.food.update(deltaTime);
+
+    // Update food items
+    const snakePositions = this.snake.getAllPositions();
+    for (let i = this.foodItems.length - 1; i >= 0; i--) {
+      const food = this.foodItems[i];
+      food.update(deltaTime, snakePositions);
+
+      // Check if food has expired
+      if (food.isExpired()) {
+        this.foodItems.splice(i, 1);
+        this.generateFood(); // Spawn new food to replace expired one
+        continue;
+      }
+
+      // Check food collision
+      if (food.checkCollisionWithSnake(snakePositions)) {
+        // Snake ate food - create particle effects
+        this.particleSystem.createFoodEatenEffect(food.getPosition());
+        this.particleSystem.createSnakeGrowthEffect(this.snake.getHeadPosition());
+
+        this.gameState.addScore(food.getPoints());
+        this.snake.addGrowth(1);
+
+        // Remove eaten food and spawn new one
+        this.foodItems.splice(i, 1);
+        this.generateFood();
+      }
     }
-    
+
     // Update particle system
     this.particleSystem.update(deltaTime);
-
-    // Check food collision
-    if (this.food && this.food.checkCollisionWithSnake(this.snake.getAllPositions())) {
-      // Snake ate food - create particle effects
-      this.particleSystem.createFoodEatenEffect(this.food.getPosition());
-      this.particleSystem.createSnakeGrowthEffect(this.snake.getHeadPosition());
-      
-      this.gameState.addScore(this.food.getPoints());
-      this.snake.addGrowth(1);
-      this.generateFood();
-    }
 
     // Check collisions
     if (this.snake.checkBoundaryCollision() || this.snake.checkSelfCollision()) {
@@ -161,11 +176,11 @@ export class Game {
     // Render snake
     this.snake.render(this.renderer);
 
-    // Render food
-    if (this.food) {
-      this.food.render(this.renderer);
+    // Render all food items
+    for (const food of this.foodItems) {
+      food.render(this.renderer);
     }
-    
+
     // Render particle effects
     this.particleSystem.render(this.renderer);
 
@@ -177,7 +192,11 @@ export class Game {
   private generateFood(): void {
     const snakePositions = this.snake.getAllPositions();
     const foodPosition = Food.generateRandomPosition(snakePositions);
-    this.food = new Food(foodPosition);
+
+    // 1 in 10 chance to spawn blue food
+    const foodType = Math.random() < 0.1 ? FoodType.BLUE : FoodType.RED;
+
+    this.foodItems.push(new Food(foodPosition, foodType));
   }
 
   private updateUI(): void {
@@ -248,21 +267,24 @@ export class Game {
   private restartGame(): void {
     // Reset game state
     this.gameState.reset();
-    
+
     // Reset snake to initial position and state
     const centerX = GAME_CONFIG.CANVAS_WIDTH / 2;
     const centerY = GAME_CONFIG.CANVAS_HEIGHT / 2;
     this.snake = new Snake(new Vector2(centerX, centerY));
-    
+
     // Clear particles
     this.particleSystem.clear();
-    
-    // Generate new food
-    this.generateFood();
-    
+
+    // Clear old food and generate new food items
+    this.foodItems = [];
+    for (let i = 0; i < this.maxFoodItems; i++) {
+      this.generateFood();
+    }
+
     // Restart audio
     this.audioManager.play();
-    
+
     // Update UI
     this.updateUI();
     this.updatePauseMenuVisibility();
