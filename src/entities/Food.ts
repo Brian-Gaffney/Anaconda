@@ -172,10 +172,29 @@ export class Food {
 
     // Draw "X" with color based on type
     const color = this.type === FoodType.BLUE ? '#00ffff' : COLORS.RED_FOOD; // Vibrant cyan/blue
+    const halfSize = this.size / 2;
+
+    // Draw glow layer first (wider, softer)
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 8;
 
-    const halfSize = this.size / 2;
+    // First diagonal line (top-left to bottom-right)
+    ctx.beginPath();
+    ctx.moveTo(this.position.x - halfSize, this.position.y - halfSize);
+    ctx.lineTo(this.position.x + halfSize, this.position.y + halfSize);
+    ctx.stroke();
+
+    // Second diagonal line (top-right to bottom-left)
+    ctx.beginPath();
+    ctx.moveTo(this.position.x + halfSize, this.position.y - halfSize);
+    ctx.lineTo(this.position.x - halfSize, this.position.y + halfSize);
+    ctx.stroke();
+
+    // Draw sharp core layer on top
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1;
 
     // First diagonal line (top-left to bottom-right)
     ctx.beginPath();

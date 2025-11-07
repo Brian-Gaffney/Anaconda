@@ -129,9 +129,6 @@ export class Game {
 
     // Check collisions
     if (this.snake.checkBoundaryCollision() || this.snake.checkSelfCollision()) {
-      // Create collision particle effect
-      this.particleSystem.createCollisionEffect(this.snake.getHeadPosition());
-      
       this.gameState.gameOver();
       this.audioManager.pause();
       this.updateMenuVisibility();

@@ -69,7 +69,7 @@ export class Snake {
     
     // Calculate current speed and turn rate based on boost state
     const currentSpeed = this.isBoosting ? this.baseSpeed * 1.8 : this.baseSpeed;
-    const currentTurnRate = this.isBoosting ? this.baseTurnRate * 0.7 : this.baseTurnRate;
+    const currentTurnRate = this.isBoosting ? this.baseTurnRate * 0.85 : this.baseTurnRate;
     
     // Apply continuous rotation based on input
     if (this.isLeftPressed) {
@@ -278,10 +278,6 @@ export class Snake {
     const ctx = renderer.getContext();
     ctx.save();
 
-    // Set up minimal green line style
-    ctx.strokeStyle = COLORS.NEON_GREEN;
-    ctx.lineWidth = 2;
-
     // Get the continuous path of the snake
     const pathPoints = this.calculateSnakePath();
 
@@ -290,10 +286,18 @@ export class Snake {
       return;
     }
 
-    // Draw the continuous tube outline (with tapered head)
+    // Draw glow layer first (wider, softer)
+    ctx.strokeStyle = COLORS.NEON_GREEN;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = COLORS.NEON_GREEN;
+    ctx.shadowBlur = 8;
     this.drawTubeOutline(ctx, pathPoints);
+    this.drawCrossLines(ctx, pathPoints);
 
-    // Draw perpendicular cross-lines every ~20px (includes the cap)
+    // Draw sharp core layer on top
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1;
+    this.drawTubeOutline(ctx, pathPoints);
     this.drawCrossLines(ctx, pathPoints);
 
     ctx.restore();
