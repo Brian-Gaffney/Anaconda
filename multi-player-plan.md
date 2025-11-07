@@ -4,6 +4,9 @@
 
 Transform Anaconda into a 2-4 player competitive snake game using WebSocket communication with a Node.js backend hosted on Fly.io.
 
+Player 1 is green, Player 2 is light blue, Player 3 is orange and Player 4 is purple.
+
+
 ## Architecture
 
 ```
