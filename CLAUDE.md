@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Peanut is a web-based snake clone inspired by the "Anaconda" mini-game from Timesplitters 2. This is a 2D snake-style game with a retro neon line aesthetic featuring an articulated snake that can rotate smoothly for more fluid movement.
+Anaconda is a web-based snake clone inspired by the "Anaconda" mini-game from Timesplitters 2. This is a 2D snake-style game with a retro neon line aesthetic featuring an articulated snake that can rotate smoothly for more fluid movement.
 
 ## Tech Stack
 

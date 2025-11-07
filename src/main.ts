@@ -4,7 +4,7 @@ import { GAME_CONFIG } from './game/constants.js';
 
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
 
-console.log('Peanut Snake Game Starting...');
+console.log('Anaconda Snake Game Starting...');
 
 // Function to resize canvas maintaining aspect ratio
 function resizeCanvas() {

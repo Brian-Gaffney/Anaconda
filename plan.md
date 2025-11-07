@@ -1,4 +1,4 @@
-# Peanut Game Development Plan
+# Anaconda Game Development Plan
 
 ## Visual Analysis from References
 
