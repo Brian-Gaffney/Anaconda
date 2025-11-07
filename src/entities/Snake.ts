@@ -15,7 +15,6 @@ export class Snake {
   private headPosition: Vector2;
   private headVelocity: Vector2;
   private currentAngle: number = 0; // Current heading in radians
-  private baseSpeed = 120; // pixels per second
   private baseTurnRate = 2.5; // radians per second turning speed
   private segmentSpacing = GAME_CONFIG.SNAKE_SEGMENT_SIZE;
   private growthPending = 0;
@@ -23,8 +22,7 @@ export class Snake {
   private isRightPressed = false;
   private isBoosting = false;
   private gameTime = 0; // Track total game time for animations
-  private maxTrailLength = 300; // Maximum length of trail in pixels
-  private trailPointSpacing = 4; // Add trail points every 4 pixels
+  private maxTrailLength = GAME_CONFIG.MAX_TRAIL_LENGTH; // Maximum length of trail in pixels
   private lastTrailPoint: Vector2 | null = null;
   
   // Performance optimization caches
@@ -35,11 +33,11 @@ export class Snake {
   constructor(startPosition: Vector2) {
     this.headPosition = startPosition.clone();
     this.currentAngle = 0; // Start facing right
-    this.headVelocity = new Vector2(this.baseSpeed, 0);
+    this.headVelocity = new Vector2(GAME_CONFIG.SNAKE_BASE_SPEED, 0);
 
     // Initialize trail with full length going backwards from start position
     this.trailPoints = [];
-    for (let i = 0; i <= this.maxTrailLength; i += this.trailPointSpacing) {
+    for (let i = 0; i <= this.maxTrailLength; i += GAME_CONFIG.TRAIL_POINT_SPACING) {
       const trailPoint = new Vector2(
         startPosition.x - i, // Extend backwards (to the left)
         startPosition.y
@@ -66,9 +64,9 @@ export class Snake {
   update(deltaTime: number): void {
     const dt = deltaTime * 0.001; // Convert to seconds
     this.gameTime += dt; // Update game time for animations
-    
+
     // Calculate current speed and turn rate based on boost state
-    const currentSpeed = this.isBoosting ? this.baseSpeed * 1.8 : this.baseSpeed;
+    const currentSpeed = this.isBoosting ? GAME_CONFIG.SNAKE_BASE_SPEED * 1.8 : GAME_CONFIG.SNAKE_BASE_SPEED;
     const currentTurnRate = this.isBoosting ? this.baseTurnRate * 0.85 : this.baseTurnRate;
     
     // Apply continuous rotation based on input
@@ -109,14 +107,14 @@ export class Snake {
     // Add new trail point if head has moved far enough
     if (this.lastTrailPoint) {
       const distanceMoved = this.headPosition.distance(this.lastTrailPoint);
-      if (distanceMoved >= this.trailPointSpacing) {
+      if (distanceMoved >= GAME_CONFIG.TRAIL_POINT_SPACING) {
         // Add new point at head position
         this.trailPoints.unshift(this.headPosition.clone());
         this.lastTrailPoint = this.headPosition.clone();
-        
+
         // Invalidate cache when trail changes
         this.cacheValid = false;
-        
+
         // Remove old points to maintain max trail length
         this.trimTrail();
       }
@@ -185,13 +183,13 @@ export class Snake {
 
   private grow(): void {
     // Increase max trail length to make tube longer
-    this.maxTrailLength += 20; // Grow by 20 pixels
-    
+    this.maxTrailLength += GAME_CONFIG.GROWTH_PIXELS;
+
     // Also add segment for collision detection
-    const tail = this.segments.length > 0 
-      ? this.segments[this.segments.length - 1] 
+    const tail = this.segments.length > 0
+      ? this.segments[this.segments.length - 1]
       : { position: this.headPosition.subtract(new Vector2(Math.cos(this.currentAngle), Math.sin(this.currentAngle)).multiply(this.segmentSpacing)) };
-    
+
     const newSegment: SnakeSegment = {
       position: tail.position.clone(),
       velocity: Vector2.zero(),
@@ -250,9 +248,9 @@ export class Snake {
   checkSelfCollision(): boolean {
     const head = this.headPosition;
     const collisionRadius = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 0.4;
-    
+
     // Check collision with trail points (skip first few points to avoid immediate collision)
-    const minPointsToSkip = Math.max(3, Math.floor(20 / this.trailPointSpacing)); // Skip about 20 pixels worth
+    const minPointsToSkip = Math.max(3, Math.floor(20 * GAME_CONFIG.SCALE / GAME_CONFIG.TRAIL_POINT_SPACING)); // Skip about 20 scaled pixels worth
     for (let i = minPointsToSkip; i < this.trailPoints.length; i++) {
       const trailPoint = this.trailPoints[i];
       if (head.distance(trailPoint) < collisionRadius) {
@@ -311,8 +309,8 @@ export class Snake {
   private drawTubeOutline(ctx: CanvasRenderingContext2D, pathPoints: Vector2[]): void {
     const tubeWidth = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 1.0;
     const halfWidth = tubeWidth / 2;
-    const headSegmentLength = 15; // Each segment is ~15px
-    const tailTaperLength = 100; // Last 5 segments (5 * 20px)
+    const headSegmentLength = GAME_CONFIG.HEAD_SEGMENT_LENGTH;
+    const tailTaperLength = GAME_CONFIG.TAIL_TAPER_LENGTH;
 
     if (pathPoints.length < 2) return;
 
@@ -418,11 +416,11 @@ export class Snake {
   }
 
   private drawCrossLines(ctx: CanvasRenderingContext2D, pathPoints: Vector2[]): void {
-    const crossLineSpacing = 20; // Every 20px
+    const crossLineSpacing = GAME_CONFIG.CROSS_LINE_SPACING;
     const tubeWidth = GAME_CONFIG.SNAKE_SEGMENT_SIZE * 1.0;
     const halfWidth = tubeWidth / 2;
-    const headSegmentLength = 15; // Each segment is ~15px
-    const tailTaperLength = 100; // Last 5 segments (5 * 20px)
+    const headSegmentLength = GAME_CONFIG.HEAD_SEGMENT_LENGTH;
+    const tailTaperLength = GAME_CONFIG.TAIL_TAPER_LENGTH;
 
     if (pathPoints.length < 2) return;
 

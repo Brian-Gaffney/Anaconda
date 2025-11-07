@@ -19,7 +19,6 @@ export class Food {
   private expired = false;
   private type: FoodType;
   private velocity: Vector2 = Vector2.zero(); // For bouncing blue food
-  private speed = 200; // pixels per second for blue food
 
   constructor(position: Vector2, type: FoodType = FoodType.RED) {
     this.position = position.clone();
@@ -33,8 +32,8 @@ export class Food {
       // Random velocity for blue food
       const angle = Math.random() * Math.PI * 2;
       this.velocity = new Vector2(
-        Math.cos(angle) * this.speed,
-        Math.sin(angle) * this.speed
+        Math.cos(angle) * GAME_CONFIG.FOOD_SPEED_BLUE,
+        Math.sin(angle) * GAME_CONFIG.FOOD_SPEED_BLUE
       );
     } else {
       this.points = 100;
@@ -127,7 +126,7 @@ export class Food {
         if (distance < minDistance && distance > 0) {
           // Calculate bounce direction away from snake segment
           const bounceDir = this.position.subtract(snakePos).normalize();
-          this.velocity = bounceDir.multiply(this.speed);
+          this.velocity = bounceDir.multiply(GAME_CONFIG.FOOD_SPEED_BLUE);
           // Push food away to avoid overlapping
           this.position = snakePos.add(bounceDir.multiply(minDistance));
           break;
